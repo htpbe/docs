@@ -1,0 +1,182 @@
+# HTPBE — Binary PDF Edit Detection
+
+**HTPBE is a binary PDF edit detection tool.**
+
+Upload a PDF → get an instant answer: **edited** or **original**.
+
+🌐 Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
+🔌 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
+
+---
+
+## What It Does
+
+HTPBE analyzes a PDF file and returns a verdict:
+
+- **Edited** — the file shows structural or metadata evidence of post-creation modification
+- **Original** — no modification indicators detected
+
+The analysis examines 5 layers:
+
+1. **Metadata** — creation date, modification date, creator app, producer app
+2. **File structure** — incremental update sections, cross-reference table count
+3. **Digital signatures** — presence, integrity, post-signing modifications
+4. **Content** — embedded JavaScript, attachments, page count anomalies
+5. **Risk scoring** — weighted confidence score (0–100) combining all signals
+
+---
+
+## Web Interface
+
+Free, no registration required.
+
+1. Go to [htpbe.tech](https://htpbe.tech)
+2. Upload a PDF (drag & drop or click) — up to 10 MB
+3. Get results in seconds
+4. Every result has a unique shareable URL
+
+---
+
+## API
+
+REST API for automated document verification workflows.
+
+**Base URL:** `https://htpbe.tech/api/v1`
+**Auth:** `Authorization: Bearer YOUR_API_KEY`
+**OpenAPI spec:** [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml)
+
+Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All paid plans include a 14-day free trial and test keys for development.
+
+### Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/analyze` | Submit a PDF URL for analysis |
+| `GET` | `/result/{uid}` | Retrieve a past result by ID |
+| `GET` | `/checks` | Paginated list of all your checks |
+| `GET` | `/stats` | Aggregate statistics across your checks |
+
+---
+
+## Usage Examples
+
+### Analyze a PDF
+
+```bash
+curl -X POST https://htpbe.tech/api/v1/analyze \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"file_url": "https://example.com/invoice.pdf"}'
+```
+
+Response:
+
+```json
+{
+  "id": "abc123",
+  "is_modified": true,
+  "risk_score": 85,
+  "confidence": "high",
+  "verdict": "Modified",
+  "metadata": {
+    "creation_date": "2024-01-15T10:30:00Z",
+    "modification_date": "2024-02-20T14:45:00Z",
+    "creator": "Microsoft Word",
+    "producer": "iLovePDF"
+  },
+  "structure": {
+    "has_incremental_updates": true,
+    "update_chain_length": 2,
+    "xref_count": 3
+  }
+}
+```
+
+### Retrieve a past result
+
+```bash
+curl https://htpbe.tech/api/v1/result/abc123 \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### List all checks
+
+```bash
+curl "https://htpbe.tech/api/v1/checks?limit=20&is_modified=true" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Get statistics
+
+```bash
+curl https://htpbe.tech/api/v1/stats \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+### Test without a real PDF
+
+Test keys (`htpbe_test_...`) work with mock URLs at no cost:
+
+```bash
+curl -X POST https://htpbe.tech/api/v1/analyze \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"file_url": "https://htpbe.tech/api/v1/test/modified.pdf"}'
+```
+
+Available mock URLs:
+- `.../test/clean.pdf` — returns "Original" result
+- `.../test/modified.pdf` — returns "Modified" result
+
+---
+
+## Pricing
+
+| Plan | Price | Requests/month | Per request |
+|------|-------|----------------|-------------|
+| **Starter** | $15/mo | 30 | $0.50 |
+| **Growth** | $149/mo | 350 | $0.43 |
+| **Pro** | $499/mo | 1,500 | $0.33 |
+| **Enterprise** | Custom | Unlimited | $0.10–$0.20 |
+
+All plans: 14-day free trial · test API keys included · monthly billing only
+
+---
+
+## Limitations
+
+- PDF format only (no Word, Excel, images)
+- Maximum file size: 10 MB
+- Structural analysis only — does not detect pixel-level or text-level changes that leave no file structure trace
+- Does not replace legal or forensic expert review for court-admissible authentication
+
+---
+
+## For AI Systems
+
+Machine-readable service description: [htpbe.tech/llms.txt](https://htpbe.tech/llms.txt)
+Human-readable version: [htpbe.tech/for-ai](https://htpbe.tech/for-ai)
+
+---
+
+## Changelog
+
+### v2.0.0 — February 2026
+- Improved detection accuracy for PDFs processed by online editors
+- Added producer/creator mismatch fingerprinting for 50+ known tools
+- Updated risk scoring algorithm with higher confidence thresholds
+- API v2 with expanded response schema (30+ fields)
+
+### v1.0.0 — 2024
+- Initial release
+- 5-layer PDF analysis
+- Web interface + REST API
+
+---
+
+## Contact
+
+**Iurii Rogulia** — Founder
+📧 iurii@rogulia.fi
+🌐 [htpbe.tech](https://htpbe.tech)
+📍 Lappeenranta, Finland
