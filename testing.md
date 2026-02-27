@@ -68,7 +68,7 @@ The same test URL always returns exactly the same `analysis` object, regardless 
 curl -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
+  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
 ```
 
 Response:
@@ -169,7 +169,7 @@ Verify that your integration correctly parses the response structure.
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/clean.pdf"}' | jq .
+  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}' | jq .
 ```
 
 **What to verify:**
@@ -189,7 +189,7 @@ Verify that your UI correctly displays the "modified" state.
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}' | jq '.analysis.been_changed, .analysis.risk_score'
+  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}' | jq '.analysis.been_changed, .analysis.risk_score'
 ```
 
 **Expected output:**
@@ -221,7 +221,7 @@ Test how your code handles each risk bracket:
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/signature-valid.pdf"}' \
+  -d '{"url": "https://htpbe.tech/api/v1/test/signature-valid.pdf"}' \
   | jq '.analysis.signatures'
 ```
 
@@ -240,7 +240,7 @@ Expected:
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/signature-removed.pdf"}' \
+  -d '{"url": "https://htpbe.tech/api/v1/test/signature-removed.pdf"}' \
   | jq '.analysis.signatures'
 ```
 
@@ -264,7 +264,7 @@ Test that your UI handles JavaScript and embedded file warnings:
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/both-threats.pdf"}' \
+  -d '{"url": "https://htpbe.tech/api/v1/test/both-threats.pdf"}' \
   | jq '.analysis.threats, .analysis.findings'
 ```
 
@@ -293,7 +293,7 @@ Not all PDFs contain full metadata. Verify your application handles null values 
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/clean-no-dates.pdf"}' \
+  -d '{"url": "https://htpbe.tech/api/v1/test/clean-no-dates.pdf"}' \
   | jq '.analysis.metadata'
 ```
 
@@ -318,7 +318,7 @@ Verify that your integration correctly handles the error returned when a test ke
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://example.com/invoice.pdf"}'
+  -d '{"url": "https://example.com/invoice.pdf"}'
 ```
 
 Expected HTTP status: `403`
@@ -350,7 +350,7 @@ async function analyzeTestDocument(filename: string) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      file_url: `${BASE_URL}/test/${filename}`,
+      url: `${BASE_URL}/test/${filename}`,
     }),
   });
 
@@ -387,7 +387,7 @@ def analyze_test_document(filename: str) -> dict:
             "Authorization": f"Bearer {TEST_KEY}",
             "Content-Type": "application/json",
         },
-        json={"file_url": f"{BASE_URL}/test/{filename}"},
+        json={"url": f"{BASE_URL}/test/{filename}"},
     )
     response.raise_for_status()
     return response.json()
@@ -444,7 +444,7 @@ The `verdict_reasoning` field is `undefined` (omitted) when no single dominant r
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/clean.pdf"}' \
+  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}' \
   | jq 'has("verdict_reasoning")'
 ```
 

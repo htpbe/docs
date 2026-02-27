@@ -1,6 +1,6 @@
-# HTPBE — Binary PDF Edit Detection
+# HTPBE — PDF Authenticity Checker
 
-**HTPBE is a binary PDF edit detection tool.**
+**HTPBE is a PDF authenticity checker.**
 
 Upload a PDF → get an instant answer: **edited** or **original**.
 
@@ -49,12 +49,12 @@ Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All paid plans inc
 
 ### Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/analyze` | Submit a PDF URL for analysis |
-| `GET` | `/result/{uid}` | Retrieve a past result by ID |
-| `GET` | `/checks` | Paginated list of all your checks |
-| `GET` | `/stats` | Aggregate statistics across your checks |
+| Method | Path            | Description                             |
+| ------ | --------------- | --------------------------------------- |
+| `POST` | `/analyze`      | Submit a PDF URL for analysis           |
+| `GET`  | `/result/{uid}` | Retrieve a past result by ID            |
+| `GET`  | `/checks`       | Paginated list of all your checks       |
+| `GET`  | `/stats`        | Aggregate statistics across your checks |
 
 ---
 
@@ -66,7 +66,7 @@ Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All paid plans inc
 curl -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://example.com/invoice.pdf"}'
+  -d '{"url": "https://example.com/invoice.pdf"}'
 ```
 
 Response:
@@ -121,23 +121,28 @@ Test keys (`htpbe_test_...`) work with mock URLs at no cost:
 curl -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/modified.pdf"}'
+  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
 ```
 
-Available mock URLs:
-- `.../test/clean.pdf` — returns "Original" result
-- `.../test/modified.pdf` — returns "Modified" result
+Selected mock URLs (see [api/analyze.md](./api/analyze.md#testing-with-mock-urls) for full list of 16):
+
+- `.../test/clean.pdf` — Original, risk 0
+- `.../test/modified-low.pdf` — Modified, risk 25
+- `.../test/modified-high.pdf` — Modified, risk 75
+- `.../test/modified-critical.pdf` — Modified, risk 95 (signature removed + JS)
+- `.../test/signature-removed.pdf` — Modified, risk 90
+- `.../test/both-threats.pdf` — Modified, risk 95 (JS + embedded files + signature removed)
 
 ---
 
 ## Pricing
 
-| Plan | Price | Requests/month | Per request |
-|------|-------|----------------|-------------|
-| **Starter** | $15/mo | 30 | $0.50 |
-| **Growth** | $149/mo | 350 | $0.43 |
-| **Pro** | $499/mo | 1,500 | $0.33 |
-| **Enterprise** | Custom | Unlimited | $0.10–$0.20 |
+| Plan           | Price   | Requests/month | Per request |
+| -------------- | ------- | -------------- | ----------- |
+| **Starter**    | $15/mo  | 30             | $0.50       |
+| **Growth**     | $149/mo | 350            | $0.43       |
+| **Pro**        | $499/mo | 1,500          | $0.33       |
+| **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 |
 
 All plans: 14-day free trial · test API keys included · monthly billing only
 
@@ -162,12 +167,14 @@ Human-readable version: [htpbe.tech/for-ai](https://htpbe.tech/for-ai)
 ## Changelog
 
 ### v2.0.0 — February 2026
+
 - Improved detection accuracy for PDFs processed by online editors
 - Added producer/creator mismatch fingerprinting for 50+ known tools
 - Updated risk scoring algorithm with higher confidence thresholds
 - API v2 with expanded response schema (30+ fields)
 
 ### v1.0.0 — 2024
+
 - Initial release
 - 5-layer PDF analysis
 - Web interface + REST API

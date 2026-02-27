@@ -190,7 +190,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Type:** `string`
 - **Always Present:** Yes
 - **Description:** Filename extracted from the URL path when the PDF was analyzed
-- **Extraction:** Taken from the last segment of the `file_url` path
+- **Extraction:** Taken from the last segment of the `url` path
 - **Examples:**
   - `"contract.pdf"` (from `https://example.com/docs/contract.pdf`)
   - `"invoice-2024-01.pdf"`

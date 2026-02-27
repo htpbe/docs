@@ -31,11 +31,11 @@ Authorization: Bearer YOUR_API_KEY
 
 | Parameter           | Type   | Required | Description                                                                                                                                                                        |
 | ------------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `file_url`          | string | **Yes**  | Publicly accessible HTTP/HTTPS URL pointing to a PDF file. The file must be downloadable without authentication and must not exceed 10 MB in size.                                 |
+| `url`          | string | **Yes**  | Publicly accessible HTTP/HTTPS URL pointing to a PDF file. The file must be downloadable without authentication and must not exceed 10 MB in size.                                 |
 | `original_filename` | string | No       | Original filename of the document (before any storage renaming). When provided, this name is stored and returned in results instead of the filename extracted from the URL.        |
 | `webhook_url`       | string | No       | **[Coming Soon]** URL where a webhook notification will be sent when analysis is complete (for async processing). Currently not implemented - all requests complete synchronously. |
 
-#### file_url Parameter Details
+#### url Parameter Details
 
 **Format:** Must be a valid HTTP or HTTPS URL
 
@@ -63,7 +63,7 @@ curl -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef" \
   -H "Content-Type: application/json" \
   -d '{
-    "file_url": "https://example.com/documents/contract.pdf"
+    "url": "https://example.com/documents/contract.pdf"
   }'
 ```
 
@@ -76,7 +76,7 @@ const response = await fetch('https://htpbe.tech/api/v1/analyze', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    file_url: 'https://example.com/documents/contract.pdf',
+    url: 'https://example.com/documents/contract.pdf',
   }),
 });
 
@@ -95,7 +95,7 @@ response = requests.post(
         'Content-Type': 'application/json'
     },
     json={
-        'file_url': 'https://example.com/documents/contract.pdf'
+        'url': 'https://example.com/documents/contract.pdf'
     }
 )
 
@@ -597,17 +597,17 @@ All errors follow this format:
 
 Returned when the request is malformed or contains invalid parameters.
 
-#### Missing or Invalid file_url
+#### Missing or Invalid url
 
 ```json
 {
-  "error": "Missing or invalid file_url parameter"
+  "error": "Missing or invalid url parameter"
 }
 ```
 
-**Cause:** The `file_url` field is not present in the request body, or it's not a string.
+**Cause:** The `url` field is not present in the request body, or it's not a string.
 
-**Solution:** Ensure you're sending a valid JSON body with a `file_url` string field.
+**Solution:** Ensure you're sending a valid JSON body with a `url` string field.
 
 ---
 
@@ -615,11 +615,11 @@ Returned when the request is malformed or contains invalid parameters.
 
 ```json
 {
-  "error": "Invalid file_url format"
+  "error": "Invalid url format"
 }
 ```
 
-**Cause:** The `file_url` value is not a valid HTTP/HTTPS URL.
+**Cause:** The `url` value is not a valid HTTP/HTTPS URL.
 
 **Examples of Invalid URLs:**
 
@@ -828,7 +828,7 @@ Server-side error during processing.
 **Solution:**
 
 - Retry the request (may be a transient error)
-- If persists, contact support with the `file_url` for investigation
+- If persists, contact support with the `url` for investigation
 - Check our status page for any ongoing incidents
 
 ---
@@ -843,29 +843,29 @@ Test keys (`htpbe_test_...`) only work with predefined test URLs. These behave l
 curl -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
+  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
 ```
 
 **Available mock URLs** (all at `https://htpbe.tech/api/v1/test/`):
 
-| URL | `been_changed` | `risk_score` | `confidence_level` | Description |
-|-----|---------------|-------------|-------------------|-------------|
-| `clean.pdf` | `false` | `0` | `low` | Original, no modifications |
-| `clean-no-dates.pdf` | `false` | `0` | `low` | Original, metadata dates absent |
-| `modified-low.pdf` | `true` | `25` | `medium` | Minor modification (1 incremental update) |
-| `modified-medium.pdf` | `true` | `50` | `medium` | Moderate modification (creator/producer mismatch) |
-| `modified-high.pdf` | `true` | `75` | `high` | Significant modification (multiple updates, tool change) |
-| `modified-critical.pdf` | `true` | `95` | `high` | Critical: signature removed + JavaScript detected |
-| `dates-mismatch.pdf` | `true` | `40` | `medium` | Dates differ (14-day gap between creation and modification) |
-| `dates-same.pdf` | `false` | `0` | `low` | Creation and modification dates identical |
-| `incremental-updates.pdf` | `true` | `60` | `high` | 6 incremental update sections detected |
-| `multiple-xref.pdf` | `true` | `55` | `medium` | 4 cross-reference tables |
-| `signature-valid.pdf` | `false` | `0` | `low` | Digitally signed, no post-sign modifications |
-| `signature-removed.pdf` | `true` | `90` | `high` | Critical: digital signature removed |
-| `modified-after-sign.pdf` | `true` | `85` | `high` | Modified after digital signing (signature invalidated) |
-| `javascript.pdf` | `true` | `70` | `high` | Contains embedded JavaScript |
-| `embedded-files.pdf` | `true` | `65` | `medium` | Contains embedded file attachments |
-| `both-threats.pdf` | `true` | `95` | `high` | JavaScript + embedded files + signature removed |
+| URL                       | `been_changed` | `risk_score` | `confidence_level` | Description                                                 |
+| ------------------------- | -------------- | ------------ | ------------------ | ----------------------------------------------------------- |
+| `clean.pdf`               | `false`        | `0`          | `low`              | Original, no modifications                                  |
+| `clean-no-dates.pdf`      | `false`        | `0`          | `low`              | Original, metadata dates absent                             |
+| `modified-low.pdf`        | `true`         | `25`         | `medium`           | Minor modification (1 incremental update)                   |
+| `modified-medium.pdf`     | `true`         | `50`         | `medium`           | Moderate modification (creator/producer mismatch)           |
+| `modified-high.pdf`       | `true`         | `75`         | `high`             | Significant modification (multiple updates, tool change)    |
+| `modified-critical.pdf`   | `true`         | `95`         | `high`             | Critical: signature removed + JavaScript detected           |
+| `dates-mismatch.pdf`      | `true`         | `40`         | `medium`           | Dates differ (14-day gap between creation and modification) |
+| `dates-same.pdf`          | `false`        | `0`          | `low`              | Creation and modification dates identical                   |
+| `incremental-updates.pdf` | `true`         | `60`         | `high`             | 6 incremental update sections detected                      |
+| `multiple-xref.pdf`       | `true`         | `55`         | `medium`           | 4 cross-reference tables                                    |
+| `signature-valid.pdf`     | `false`        | `0`          | `low`              | Digitally signed, no post-sign modifications                |
+| `signature-removed.pdf`   | `true`         | `90`         | `high`             | Critical: digital signature removed                         |
+| `modified-after-sign.pdf` | `true`         | `85`         | `high`             | Modified after digital signing (signature invalidated)      |
+| `javascript.pdf`          | `true`         | `70`         | `high`             | Contains embedded JavaScript                                |
+| `embedded-files.pdf`      | `true`         | `65`         | `medium`           | Contains embedded file attachments                          |
+| `both-threats.pdf`        | `true`         | `95`         | `high`             | JavaScript + embedded files + signature removed             |
 
 ---
 

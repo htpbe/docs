@@ -23,6 +23,7 @@ The cloud API is suitable for most use cases. On-premise is the right choice whe
 The on-premise version is the same analysis engine that powers htpbe.tech — identical detection accuracy, identical API surface. The only difference is where it runs.
 
 **What's included:**
+
 - Docker image of the HTPBE analysis engine
 - Identical REST API (`POST /analyze`, `GET /result/{id}`, `GET /checks`, `GET /stats`)
 - No file size limits — configure based on your server capacity
@@ -41,7 +42,7 @@ The on-premise deployment is a single self-contained service:
 ```
 Your application
        │
-       │  HTTP POST /analyze  { file_url: "..." }
+       │  HTTP POST /analyze  { url: "..." }
        ▼
 ┌─────────────────────────────────┐
 │   HTPBE Analysis Engine         │
@@ -86,11 +87,11 @@ services:
   htpbe:
     image: ghcr.io/htpbe/analyzer:latest
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       LICENSE_KEY: your_license_key
       DATABASE_URL: file:/data/htpbe.db
-      MAX_FILE_SIZE_MB: 50          # default: 50, set as needed
+      MAX_FILE_SIZE_MB: 50 # default: 50, set as needed
       API_KEY: your_internal_api_key
     volumes:
       - htpbe_data:/data
@@ -108,14 +109,14 @@ A Helm chart is available on request. Contact iurii@rogulia.fi.
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `LICENSE_KEY` | **Yes** | — | License key provided after purchase |
-| `DATABASE_URL` | No | `file:/data/htpbe.db` | SQLite file path or external DB connection string |
-| `API_KEY` | No | — | Require this key on all API requests (recommended) |
-| `MAX_FILE_SIZE_MB` | No | `50` | Maximum PDF file size in MB |
-| `PORT` | No | `3000` | HTTP port to listen on |
-| `LOG_LEVEL` | No | `info` | Logging level: `debug`, `info`, `warn`, `error` |
+| Variable           | Required | Default               | Description                                        |
+| ------------------ | -------- | --------------------- | -------------------------------------------------- |
+| `LICENSE_KEY`      | **Yes**  | —                     | License key provided after purchase                |
+| `DATABASE_URL`     | No       | `file:/data/htpbe.db` | SQLite file path or external DB connection string  |
+| `API_KEY`          | No       | —                     | Require this key on all API requests (recommended) |
+| `MAX_FILE_SIZE_MB` | No       | `50`                  | Maximum PDF file size in MB                        |
+| `PORT`             | No       | `3000`                | HTTP port to listen on                             |
+| `LOG_LEVEL`        | No       | `info`                | Logging level: `debug`, `info`, `warn`, `error`    |
 
 ---
 
@@ -136,7 +137,7 @@ Authentication uses the `API_KEY` environment variable (if set):
 curl -X POST http://your-server:3000/api/v1/analyze \
   -H "Authorization: Bearer YOUR_INTERNAL_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"file_url": "http://internal-storage/documents/contract.pdf"}'
+  -d '{"url": "http://internal-storage/documents/contract.pdf"}'
 ```
 
 Full API reference: [api/analyze.md](./api/analyze.md)
@@ -145,13 +146,13 @@ Full API reference: [api/analyze.md](./api/analyze.md)
 
 ## Server Requirements
 
-| | Minimum | Recommended |
-|---|---|---|
-| CPU | 1 core | 2+ cores |
-| RAM | 512 MB | 2 GB |
-| Disk | 1 GB | 10 GB (for result history) |
-| OS | Any (Docker) | Linux (amd64/arm64) |
-| Docker | 20.10+ | latest |
+|        | Minimum      | Recommended                |
+| ------ | ------------ | -------------------------- |
+| CPU    | 1 core       | 2+ cores                   |
+| RAM    | 512 MB       | 2 GB                       |
+| Disk   | 1 GB         | 10 GB (for result history) |
+| OS     | Any (Docker) | Linux (amd64/arm64)        |
+| Docker | 20.10+       | latest                     |
 
 ---
 
@@ -178,7 +179,7 @@ No annual contracts. Cancel anytime.
 
 ## Contact
 
-**Iurii Rogulia**
+**Iurii Rogulia** — Founder
 📧 iurii@rogulia.fi
 🌐 [htpbe.tech/api](https://htpbe.tech/api)
 
