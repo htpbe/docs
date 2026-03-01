@@ -31,7 +31,7 @@ Authorization: Bearer YOUR_API_KEY
 
 | Parameter           | Type   | Required | Description                                                                                                                                                                        |
 | ------------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `url`          | string | **Yes**  | Publicly accessible HTTP/HTTPS URL pointing to a PDF file. The file must be downloadable without authentication and must not exceed 10 MB in size.                                 |
+| `url`               | string | **Yes**  | Publicly accessible HTTP/HTTPS URL pointing to a PDF file. The file must be downloadable without authentication and must not exceed 10 MB in size.                                 |
 | `original_filename` | string | No       | Original filename of the document (before any storage renaming). When provided, this name is stored and returned in results instead of the filename extracted from the URL.        |
 | `webhook_url`       | string | No       | **[Coming Soon]** URL where a webhook notification will be sent when analysis is complete (for async processing). Currently not implemented - all requests complete synchronously. |
 

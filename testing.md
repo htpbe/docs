@@ -8,8 +8,8 @@ Test API keys let you build and test your integration without using real PDF fil
 
 Every paid account has exactly one test API key alongside its live key(s). The two key types share the same format but differ in prefix:
 
-| Key type | Format | Example |
-|---|---|---|
+| Key type | Format           | Example              |
+| -------- | ---------------- | -------------------- |
 | Live key | `htpbe_live_...` | `htpbe_live_abc123…` |
 | Test key | `htpbe_test_...` | `htpbe_test_xyz789…` |
 
@@ -123,38 +123,38 @@ All 16 test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (inclu
 
 Use these to test how your application handles documents that pass verification.
 
-| Filename | `been_changed` | `risk_score` | `confidence_level` | Notes |
-|---|---|---|---|---|
-| `clean.pdf` | `false` | `0` | `low` | Typical original document with full metadata |
-| `clean-no-dates.pdf` | `false` | `0` | `low` | Original document — metadata dates absent (e.g. auto-generated PDF) |
-| `dates-same.pdf` | `false` | `0` | `low` | Creation and modification dates are identical |
-| `signature-valid.pdf` | `false` | `0` | `low` | Digitally signed, no post-sign modifications |
+| Filename              | `been_changed` | `risk_score` | `confidence_level` | Notes                                                               |
+| --------------------- | -------------- | ------------ | ------------------ | ------------------------------------------------------------------- |
+| `clean.pdf`           | `false`        | `0`          | `low`              | Typical original document with full metadata                        |
+| `clean-no-dates.pdf`  | `false`        | `0`          | `low`              | Original document — metadata dates absent (e.g. auto-generated PDF) |
+| `dates-same.pdf`      | `false`        | `0`          | `low`              | Creation and modification dates are identical                       |
+| `signature-valid.pdf` | `false`        | `0`          | `low`              | Digitally signed, no post-sign modifications                        |
 
 ### Modified — Graduated Risk Levels
 
 Use these to test risk thresholds, conditional logic, and UI states for different levels of tampering.
 
-| Filename | `been_changed` | `risk_score` | `confidence_level` | Notes |
-|---|---|---|---|---|
-| `dates-mismatch.pdf` | `true` | `40` | `medium` | Modification date 14 days after creation date |
-| `modified-low.pdf` | `true` | `25` | `medium` | Minor modification — one incremental update detected |
-| `modified-medium.pdf` | `true` | `50` | `medium` | Moderate modification — creator/producer mismatch |
-| `multiple-xref.pdf` | `true` | `55` | `medium` | 4 cross-reference tables detected |
-| `incremental-updates.pdf` | `true` | `60` | `high` | 6 incremental update sections |
-| `embedded-files.pdf` | `true` | `65` | `medium` | Embedded file attachments added after creation |
-| `javascript.pdf` | `true` | `70` | `high` | JavaScript code embedded in PDF |
-| `modified-high.pdf` | `true` | `75` | `high` | Significant modification — multiple updates, tool change |
+| Filename                  | `been_changed` | `risk_score` | `confidence_level` | Notes                                                    |
+| ------------------------- | -------------- | ------------ | ------------------ | -------------------------------------------------------- |
+| `dates-mismatch.pdf`      | `true`         | `40`         | `medium`           | Modification date 14 days after creation date            |
+| `modified-low.pdf`        | `true`         | `25`         | `medium`           | Minor modification — one incremental update detected     |
+| `modified-medium.pdf`     | `true`         | `50`         | `medium`           | Moderate modification — creator/producer mismatch        |
+| `multiple-xref.pdf`       | `true`         | `55`         | `medium`           | 4 cross-reference tables detected                        |
+| `incremental-updates.pdf` | `true`         | `60`         | `high`             | 6 incremental update sections                            |
+| `embedded-files.pdf`      | `true`         | `65`         | `medium`           | Embedded file attachments added after creation           |
+| `javascript.pdf`          | `true`         | `70`         | `high`             | JavaScript code embedded in PDF                          |
+| `modified-high.pdf`       | `true`         | `75`         | `high`             | Significant modification — multiple updates, tool change |
 
 ### Critical Tampering
 
 Use these to test how your application handles severe tampering alerts.
 
-| Filename | `been_changed` | `risk_score` | `confidence_level` | Notes |
-|---|---|---|---|---|
-| `modified-after-sign.pdf` | `true` | `85` | `high` | Modified after digital signing — signature invalidated |
-| `signature-removed.pdf` | `true` | `90` | `high` | Digital signature was removed from the document |
-| `modified-critical.pdf` | `true` | `95` | `high` | Signature removed + JavaScript detected + 8-step modification chain |
-| `both-threats.pdf` | `true` | `95` | `high` | JavaScript + embedded files + signature removed — maximum severity |
+| Filename                  | `been_changed` | `risk_score` | `confidence_level` | Notes                                                               |
+| ------------------------- | -------------- | ------------ | ------------------ | ------------------------------------------------------------------- |
+| `modified-after-sign.pdf` | `true`         | `85`         | `high`             | Modified after digital signing — signature invalidated              |
+| `signature-removed.pdf`   | `true`         | `90`         | `high`             | Digital signature was removed from the document                     |
+| `modified-critical.pdf`   | `true`         | `95`         | `high`             | Signature removed + JavaScript detected + 8-step modification chain |
+| `both-threats.pdf`        | `true`         | `95`         | `high`             | JavaScript + embedded files + signature removed — maximum severity  |
 
 ---
 
@@ -173,6 +173,7 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 ```
 
 **What to verify:**
+
 - Response is valid JSON with `id` (UUID string) and `analysis` object
 - `analysis.been_changed` is `false`
 - `analysis.risk_score` is `0`
@@ -193,6 +194,7 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 ```
 
 **Expected output:**
+
 ```
 true
 75
@@ -204,13 +206,13 @@ true
 
 Test how your code handles each risk bracket:
 
-| Score range | Test URL |
-|---|---|
-| 0 (none) | `clean.pdf` |
-| 25 (low) | `modified-low.pdf` |
-| 40–55 (medium) | `dates-mismatch.pdf`, `multiple-xref.pdf` |
-| 60–75 (high) | `incremental-updates.pdf`, `modified-high.pdf` |
-| 85–95 (critical) | `signature-removed.pdf`, `both-threats.pdf` |
+| Score range      | Test URL                                       |
+| ---------------- | ---------------------------------------------- |
+| 0 (none)         | `clean.pdf`                                    |
+| 25 (low)         | `modified-low.pdf`                             |
+| 40–55 (medium)   | `dates-mismatch.pdf`, `multiple-xref.pdf`      |
+| 60–75 (high)     | `incremental-updates.pdf`, `modified-high.pdf` |
+| 85–95 (critical) | `signature-removed.pdf`, `both-threats.pdf`    |
 
 ---
 
@@ -226,6 +228,7 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 ```
 
 Expected:
+
 ```json
 {
   "has_digital_signature": true,
@@ -245,6 +248,7 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 ```
 
 Expected:
+
 ```json
 {
   "has_digital_signature": false,
@@ -269,6 +273,7 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 ```
 
 Expected:
+
 ```json
 {
   "has_javascript": true,
@@ -298,6 +303,7 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 ```
 
 Expected:
+
 ```json
 {
   "creation_date": null,
@@ -346,7 +352,7 @@ async function analyzeTestDocument(filename: string) {
   const response = await fetch(`${BASE_URL}/analyze`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${TEST_KEY}`,
+      Authorization: `Bearer ${TEST_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
