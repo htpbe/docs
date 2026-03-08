@@ -77,9 +77,15 @@ Response:
 {
   "id": "3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21",
   "analysis": {
+    "status": "modified",
     "been_changed": true,
     "risk_score": 75,
     "confidence_level": "high",
+    "origin": {
+      "type": "institutional",
+      "software": null,
+      "warning": null
+    },
     "metadata": {
       "creation_date": "2024-01-01T00:00:00.000Z",
       "modification_date": "2024-03-15T18:45:00.000Z",
@@ -117,44 +123,52 @@ Response:
 
 ## Available Test URLs
 
-All 16 test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (including files you host yourself) will be rejected when using a test key.
+All 17 test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (including files you host yourself) will be rejected when using a test key.
 
 ### Clean / Original
 
 Use these to test how your application handles documents that pass verification.
 
-| Filename              | `been_changed` | `risk_score` | `confidence_level` | Notes                                                               |
-| --------------------- | -------------- | ------------ | ------------------ | ------------------------------------------------------------------- |
-| `clean.pdf`           | `false`        | `0`          | `low`              | Typical original document with full metadata                        |
-| `clean-no-dates.pdf`  | `false`        | `0`          | `low`              | Original document — metadata dates absent (e.g. auto-generated PDF) |
-| `dates-same.pdf`      | `false`        | `0`          | `low`              | Creation and modification dates are identical                       |
-| `signature-valid.pdf` | `false`        | `0`          | `low`              | Digitally signed, no post-sign modifications                        |
+| Filename              | `status` | `been_changed` | `risk_score` | Notes                                                               |
+| --------------------- | -------- | -------------- | ------------ | ------------------------------------------------------------------- |
+| `clean.pdf`           | `intact` | `false`        | `0`          | Typical original document with full metadata                        |
+| `clean-no-dates.pdf`  | `intact` | `false`        | `0`          | Original document — metadata dates absent (e.g. auto-generated PDF) |
+| `signature-valid.pdf` | `intact` | `false`        | `0`          | Digitally signed, no post-sign modifications                        |
+
+### Inconclusive (Consumer Software Origin)
+
+Use these to test how your application handles the case where integrity check is not applicable — PDFs created with office or consumer software cannot be verified.
+
+| Filename           | `status`       | `been_changed` | `risk_score` | Notes                                                   |
+| ------------------ | -------------- | -------------- | ------------ | ------------------------------------------------------- |
+| `dates-same.pdf`   | `inconclusive` | `false`        | `0`          | LibreOffice origin — integrity check not applicable     |
+| `inconclusive.pdf` | `inconclusive` | `false`        | `0`          | Microsoft Excel origin — integrity check not applicable |
 
 ### Modified — Graduated Risk Levels
 
 Use these to test risk thresholds, conditional logic, and UI states for different levels of tampering.
 
-| Filename                  | `been_changed` | `risk_score` | `confidence_level` | Notes                                                    |
-| ------------------------- | -------------- | ------------ | ------------------ | -------------------------------------------------------- |
-| `dates-mismatch.pdf`      | `true`         | `40`         | `medium`           | Modification date 14 days after creation date            |
-| `modified-low.pdf`        | `true`         | `25`         | `medium`           | Minor modification — one incremental update detected     |
-| `modified-medium.pdf`     | `true`         | `50`         | `medium`           | Moderate modification — creator/producer mismatch        |
-| `multiple-xref.pdf`       | `true`         | `55`         | `medium`           | 4 cross-reference tables detected                        |
-| `incremental-updates.pdf` | `true`         | `60`         | `high`             | 6 incremental update sections                            |
-| `embedded-files.pdf`      | `true`         | `65`         | `medium`           | Embedded file attachments added after creation           |
-| `javascript.pdf`          | `true`         | `70`         | `high`             | JavaScript code embedded in PDF                          |
-| `modified-high.pdf`       | `true`         | `75`         | `high`             | Significant modification — multiple updates, tool change |
+| Filename                  | `status`   | `been_changed` | `risk_score` | Notes                                                    |
+| ------------------------- | ---------- | -------------- | ------------ | -------------------------------------------------------- |
+| `dates-mismatch.pdf`      | `modified` | `true`         | `40`         | Modification date 14 days after creation date            |
+| `modified-low.pdf`        | `modified` | `true`         | `25`         | Minor modification — one incremental update detected     |
+| `modified-medium.pdf`     | `modified` | `true`         | `50`         | Moderate modification — creator/producer mismatch        |
+| `multiple-xref.pdf`       | `modified` | `true`         | `55`         | 4 cross-reference tables detected                        |
+| `incremental-updates.pdf` | `modified` | `true`         | `60`         | 6 incremental update sections                            |
+| `embedded-files.pdf`      | `modified` | `true`         | `65`         | Embedded file attachments added after creation           |
+| `javascript.pdf`          | `modified` | `true`         | `70`         | JavaScript code embedded in PDF                          |
+| `modified-high.pdf`       | `modified` | `true`         | `75`         | Significant modification — multiple updates, tool change |
 
 ### Critical Tampering
 
 Use these to test how your application handles severe tampering alerts.
 
-| Filename                  | `been_changed` | `risk_score` | `confidence_level` | Notes                                                               |
-| ------------------------- | -------------- | ------------ | ------------------ | ------------------------------------------------------------------- |
-| `modified-after-sign.pdf` | `true`         | `85`         | `high`             | Modified after digital signing — signature invalidated              |
-| `signature-removed.pdf`   | `true`         | `90`         | `high`             | Digital signature was removed from the document                     |
-| `modified-critical.pdf`   | `true`         | `95`         | `high`             | Signature removed + JavaScript detected + 8-step modification chain |
-| `both-threats.pdf`        | `true`         | `95`         | `high`             | JavaScript + embedded files + signature removed — maximum severity  |
+| Filename                  | `status`   | `been_changed` | `risk_score` | Notes                                                               |
+| ------------------------- | ---------- | -------------- | ------------ | ------------------------------------------------------------------- |
+| `modified-after-sign.pdf` | `modified` | `true`         | `85`         | Modified after digital signing — signature invalidated              |
+| `signature-removed.pdf`   | `modified` | `true`         | `90`         | Digital signature was removed from the document                     |
+| `modified-critical.pdf`   | `modified` | `true`         | `95`         | Signature removed + JavaScript detected + 8-step modification chain |
+| `both-threats.pdf`        | `modified` | `true`         | `95`         | JavaScript + embedded files + signature removed — maximum severity  |
 
 ---
 
@@ -165,7 +179,6 @@ Use these to test how your application handles severe tampering alerts.
 Verify that your integration correctly parses the response structure.
 
 ```bash
-# Send request
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
@@ -175,29 +188,45 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 **What to verify:**
 
 - Response is valid JSON with `id` (UUID string) and `analysis` object
+- `analysis.status` is `"intact"`
 - `analysis.been_changed` is `false`
 - `analysis.risk_score` is `0`
 - `analysis.findings` is an empty array `[]`
 - `analysis.metadata.creation_date` is non-null
+- `analysis.origin.type` is `"institutional"`
 
 ---
 
-### 2. Modification detection
+### 2. Three-state verdict handling
 
-Verify that your UI correctly displays the "modified" state.
+The API returns three possible `status` values. Verify your application handles all three:
 
 ```bash
+# intact
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}' | jq '.analysis.been_changed, .analysis.risk_score'
-```
+  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}' \
+  | jq '.analysis.status'
+# → "intact"
 
-**Expected output:**
+# modified
+curl -s -X POST https://htpbe.tech/api/v1/analyze \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}' \
+  | jq '.analysis.status'
+# → "modified"
 
-```
-true
-75
+# inconclusive
+curl -s -X POST https://htpbe.tech/api/v1/analyze \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://htpbe.tech/api/v1/test/inconclusive.pdf"}' \
+  | jq '.analysis.status, .analysis.status_reason, .analysis.origin'
+# → "inconclusive"
+# → "consumer_software_origin"
+# → { "type": "consumer_software", "software": "Microsoft Excel", "warning": "..." }
 ```
 
 ---
@@ -336,8 +365,6 @@ Expected HTTP status: `403`
 }
 ```
 
-This is the literal server error message. All 16 valid test URLs and their full expected responses are in the [Available Test URLs](#available-test-urls) table and the [Full Response Reference](#full-response-reference) section of this document — no need to look anywhere else.
-
 ---
 
 ## Code Examples
@@ -368,13 +395,21 @@ async function analyzeTestDocument(filename: string) {
   return response.json();
 }
 
-// Test both branches of your business logic
+// Test all three verdict branches
 const original = await analyzeTestDocument('clean.pdf');
+console.assert(original.analysis.status === 'intact');
 console.assert(original.analysis.been_changed === false);
 
 const tampered = await analyzeTestDocument('signature-removed.pdf');
+console.assert(tampered.analysis.status === 'modified');
 console.assert(tampered.analysis.been_changed === true);
 console.assert(tampered.analysis.signatures.signature_removed === true);
+
+const inconclusive = await analyzeTestDocument('inconclusive.pdf');
+console.assert(inconclusive.analysis.status === 'inconclusive');
+console.assert(inconclusive.analysis.status_reason === 'consumer_software_origin');
+console.assert(inconclusive.analysis.origin.type === 'consumer_software');
+console.assert(inconclusive.analysis.been_changed === false);
 ```
 
 ### Python
@@ -398,16 +433,24 @@ def analyze_test_document(filename: str) -> dict:
     response.raise_for_status()
     return response.json()
 
-# Test clean document
+# Test intact document
 result = analyze_test_document("clean.pdf")
+assert result["analysis"]["status"] == "intact"
 assert result["analysis"]["been_changed"] is False
 assert result["analysis"]["risk_score"] == 0
 
 # Test critical tampering
 result = analyze_test_document("both-threats.pdf")
+assert result["analysis"]["status"] == "modified"
 assert result["analysis"]["been_changed"] is True
 assert result["analysis"]["risk_score"] == 95
 assert result["analysis"]["threats"]["has_javascript"] is True
+
+# Test inconclusive (consumer software)
+result = analyze_test_document("inconclusive.pdf")
+assert result["analysis"]["status"] == "inconclusive"
+assert result["analysis"]["status_reason"] == "consumer_software_origin"
+assert result["analysis"]["origin"]["software"] == "Microsoft Excel"
 ```
 
 ---
@@ -422,7 +465,7 @@ assert result["analysis"]["threats"]["has_javascript"] is True
 }
 ```
 
-**Fix:** Use one of the 16 URLs listed in the [Available Test URLs](#available-test-urls) table and [Full Response Reference](#full-response-reference) section of this document, or switch to your live key.
+**Fix:** Use one of the 17 URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
 
 ---
 
@@ -458,12 +501,41 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 
 ---
 
+### Using `been_changed` as the primary verdict field
+
+`been_changed` is auxiliary and kept for backward compatibility. For `inconclusive` results, `been_changed` is `false` — the same as an intact document. Use `status` to distinguish these cases:
+
+```typescript
+// Wrong — misses inconclusive
+if (result.analysis.been_changed) {
+  showModifiedAlert();
+} else {
+  showOriginalBadge(); // incorrectly shown for consumer-software PDFs
+}
+
+// Correct
+switch (result.analysis.status) {
+  case 'intact':
+    showOriginalBadge();
+    break;
+  case 'modified':
+    showModifiedAlert();
+    break;
+  case 'inconclusive':
+    showCannotVerifyBanner(result.analysis.origin.warning);
+    break;
+}
+```
+
+---
+
 ## Checklist Before Going Live
 
 Use this list before switching from test to live keys:
 
-- [ ] Application handles `been_changed: false` (clean document)
-- [ ] Application handles `been_changed: true` at low, medium, and high risk
+- [ ] Application handles `status: "intact"` (original document)
+- [ ] Application handles `status: "modified"` at low, medium, and high risk
+- [ ] Application handles `status: "inconclusive"` with `origin.warning` displayed to the user
 - [ ] UI displays `findings` array items clearly
 - [ ] Code handles `null` values in `metadata.creation_date` and `metadata.modification_date`
 - [ ] Code handles missing `verdict_reasoning` field
@@ -486,9 +558,11 @@ Original document, no modifications.
 
 ```json
 {
+  "status": "intact",
   "been_changed": false,
   "risk_score": 0,
   "confidence_level": "low",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
     "modification_date": null,
@@ -521,9 +595,11 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 
 ```json
 {
+  "status": "intact",
   "been_changed": false,
   "risk_score": 0,
   "confidence_level": "low",
+  "origin": { "type": "unknown", "software": null, "warning": null },
   "metadata": {
     "creation_date": null,
     "modification_date": null,
@@ -552,13 +628,20 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 
 ### `dates-same.pdf`
 
-Original document, creation and modification dates are identical.
+LibreOffice origin — integrity check not applicable.
 
 ```json
 {
+  "status": "inconclusive",
+  "status_reason": "consumer_software_origin",
   "been_changed": false,
   "risk_score": 0,
   "confidence_level": "low",
+  "origin": {
+    "type": "consumer_software",
+    "software": "LibreOffice",
+    "warning": "This document was created with consumer software (LibreOffice). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+  },
   "metadata": {
     "creation_date": "2024-03-01T12:00:00.000Z",
     "modification_date": "2024-03-01T12:00:00.000Z",
@@ -585,15 +668,59 @@ Original document, creation and modification dates are identical.
 
 ---
 
+### `inconclusive.pdf`
+
+Microsoft Excel origin — integrity check not applicable.
+
+```json
+{
+  "status": "inconclusive",
+  "status_reason": "consumer_software_origin",
+  "been_changed": false,
+  "risk_score": 0,
+  "confidence_level": "low",
+  "origin": {
+    "type": "consumer_software",
+    "software": "Microsoft Excel",
+    "warning": "This document was created with consumer software (Microsoft Excel). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+  },
+  "metadata": {
+    "creation_date": "2024-03-01T09:00:00.000Z",
+    "modification_date": "2024-03-01T09:00:00.000Z",
+    "creator": "Microsoft Excel 2019",
+    "producer": "Microsoft: Print To PDF",
+    "file_size": 204800
+  },
+  "structure": {
+    "has_incremental_updates": false,
+    "update_chain_length": 1,
+    "xref_count": 1,
+    "pdf_version": "1.7"
+  },
+  "signatures": {
+    "has_digital_signature": false,
+    "signature_count": 0,
+    "signature_removed": false,
+    "modifications_after_signature": false
+  },
+  "threats": { "has_javascript": false, "has_embedded_files": false },
+  "findings": []
+}
+```
+
+---
+
 ### `signature-valid.pdf`
 
 Digitally signed, no post-sign modifications.
 
 ```json
 {
+  "status": "intact",
   "been_changed": false,
   "risk_score": 0,
   "confidence_level": "low",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-05T10:00:00.000Z",
     "modification_date": null,
@@ -626,9 +753,11 @@ Modification date 14 days after creation date.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 40,
   "confidence_level": "medium",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-01T10:00:00.000Z",
     "modification_date": "2024-02-15T14:30:00.000Z",
@@ -661,9 +790,11 @@ Minor modification — one incremental update.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 25,
   "confidence_level": "medium",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
     "modification_date": "2024-01-15T11:30:00.000Z",
@@ -696,9 +827,15 @@ Moderate modification — creator/producer mismatch.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 50,
   "confidence_level": "medium",
+  "origin": {
+    "type": "consumer_software",
+    "software": "Microsoft Word",
+    "warning": "This document was created with consumer software (Microsoft Word). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+  },
   "metadata": {
     "creation_date": "2024-01-10T08:00:00.000Z",
     "modification_date": "2024-02-05T14:20:00.000Z",
@@ -735,9 +872,11 @@ Moderate modification — creator/producer mismatch.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 55,
   "confidence_level": "medium",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-10T11:00:00.000Z",
     "modification_date": "2024-02-11T09:00:00.000Z",
@@ -770,9 +909,11 @@ Moderate modification — creator/producer mismatch.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 60,
   "confidence_level": "high",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-20T09:00:00.000Z",
     "modification_date": "2024-01-20T15:00:00.000Z",
@@ -805,9 +946,11 @@ Embedded file attachments added after creation.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 65,
   "confidence_level": "medium",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-12T14:00:00.000Z",
     "modification_date": "2024-03-12T15:30:00.000Z",
@@ -840,9 +983,11 @@ JavaScript code embedded in the PDF.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 70,
   "confidence_level": "high",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-10T10:00:00.000Z",
     "modification_date": "2024-03-10T11:00:00.000Z",
@@ -875,9 +1020,11 @@ Significant modification — multiple saves, tool changed to PDFtk.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 75,
   "confidence_level": "high",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-01T00:00:00.000Z",
     "modification_date": "2024-03-15T18:45:00.000Z",
@@ -915,9 +1062,11 @@ Modified after digital signing — signature is now invalidated.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 85,
   "confidence_level": "high",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-01T09:00:00.000Z",
     "modification_date": "2024-02-10T14:00:00.000Z",
@@ -954,9 +1103,11 @@ Digital signature was removed from the document.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 90,
   "confidence_level": "high",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-10T10:00:00.000Z",
     "modification_date": "2024-02-20T16:30:00.000Z",
@@ -989,9 +1140,15 @@ Signature removed + JavaScript detected + 8-step modification chain.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 95,
   "confidence_level": "high",
+  "origin": {
+    "type": "consumer_software",
+    "software": "Microsoft Excel",
+    "warning": "This document was created with consumer software (Microsoft Excel). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+  },
   "metadata": {
     "creation_date": "2023-12-01T10:00:00.000Z",
     "modification_date": "2024-04-01T22:15:00.000Z",
@@ -1031,9 +1188,11 @@ JavaScript + embedded files + signature removed. Maximum severity.
 
 ```json
 {
+  "status": "modified",
   "been_changed": true,
   "risk_score": 95,
   "confidence_level": "high",
+  "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-15T10:00:00.000Z",
     "modification_date": "2024-03-01T16:00:00.000Z",

@@ -120,8 +120,17 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   is_outdated: boolean;
   outdated_warning?: string;
 
+  // Primary Verdict
+  status: "intact" | "modified" | "inconclusive";
+  status_reason?: "consumer_software_origin";
+  origin: {
+    type: "consumer_software" | "institutional" | "unknown";
+    software: string | null;
+    warning: string | null;
+  };
+
   // Analysis Results
-  been_changed: boolean;
+  been_changed: boolean;  // auxiliary — prefer status
   risk_score: number;
   confidence_level: string;
 
@@ -251,10 +260,18 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 #### Analysis Results Fields
 
+##### `status`
+
+- **Type:** `"intact" | "modified" | "inconclusive"`
+- **Always Present:** Yes
+- **Description:** **PRIMARY VERDICT** — see [Understanding the verdict](./analyze.md#understanding-the-verdict) for details
+- See `POST /api/v1/analyze` documentation for full description of `status`, `status_reason`, and `origin` fields.
+
 ##### `been_changed`
 
 - **Type:** `boolean`
 - **Always Present:** Yes
+- **Description:** **AUXILIARY** — kept for backward compatibility; use `status` for new integrations
 - **Description:** Whether the PDF has been modified (same as in analyze response)
 - **Possible Values:**
   - `true` - Modified
@@ -558,6 +575,12 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   "file_size": 245632,
   "algorithm_version": "2.1.0",
   "is_outdated": false,
+  "status": "modified",
+  "origin": {
+    "type": "institutional",
+    "software": null,
+    "warning": null
+  },
   "been_changed": true,
   "risk_score": 75,
   "confidence_level": "high",

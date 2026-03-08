@@ -116,10 +116,17 @@ Returns an `AnalysisResponse` object containing the analysis results.
 {
   id: string;
   analysis: {
-    been_changed: boolean;
+    status: "intact" | "modified" | "inconclusive";   // PRIMARY verdict
+    status_reason?: "consumer_software_origin";         // only when inconclusive
+    been_changed: boolean;                              // AUXILIARY (backward-compat)
     risk_score: number;
     confidence_level: string;
     verdict_reasoning: string | undefined;
+    origin: {
+      type: "consumer_software" | "institutional" | "unknown";
+      software: string | null;
+      warning: string | null;
+    };
     metadata: {
       creation_date: string | null;
       modification_date: string | null;
@@ -171,14 +178,79 @@ Returns an `AnalysisResponse` object containing the analysis results.
 
 #### analysis.\* Fields (Core Results)
 
+##### `analysis.status`
+
+- **Type:** `"intact" | "modified" | "inconclusive"`
+- **Always Present:** Yes
+- **Description:** **PRIMARY VERDICT** — the recommended field to drive your business logic
+- **Possible Values:**
+
+  | Value            | Meaning                                                                                          |
+  | ---------------- | ------------------------------------------------------------------------------------------------ |
+  | `"intact"`       | PDF was not modified after creation; origin appears institutional                                |
+  | `"modified"`     | PDF was tampered with after creation (regardless of origin)                                      |
+  | `"inconclusive"` | PDF was not modified, but was created with consumer software — integrity check is not applicable |
+
+- **When to use `status` vs `been_changed`:** Always prefer `status`. It is the semantic verdict. `been_changed` is auxiliary and kept only for backward compatibility.
+
+##### `analysis.status_reason`
+
+- **Type:** `"consumer_software_origin" | undefined`
+- **Present Only When:** `status === "inconclusive"`
+- **Description:** Machine-readable reason code explaining why the status is inconclusive
+- **Current Values:**
+  - `"consumer_software_origin"` — PDF was created with consumer/office software (Microsoft Office, LibreOffice, Apple Pages, etc.), making the integrity check meaningless
+
+##### `analysis.origin`
+
+- **Type:** `object`
+- **Always Present:** Yes
+- **Description:** Information about the software that created the PDF
+
+  | Sub-field  | Type                                                  | Description                                                  |
+  | ---------- | ----------------------------------------------------- | ------------------------------------------------------------ |
+  | `type`     | `"consumer_software" \| "institutional" \| "unknown"` | Classification of the creator                                |
+  | `software` | `string \| null`                                      | Normalized name (e.g., `"Microsoft Excel"`, `"LibreOffice"`) |
+  | `warning`  | `string \| null`                                      | Human-readable warning (only for `consumer_software`)        |
+
+- **Consumer software** includes: Microsoft Word, Excel, PowerPoint, LibreOffice, OpenOffice, Apple Pages/Numbers/Keynote, WPS Office, macOS Print to PDF (Quartz)
+- **Institutional** means the creator/producer metadata is present but does not match consumer patterns
+
+---
+
+### Understanding the verdict
+
+| `status`         | `been_changed` | Meaning                                                                                      |
+| ---------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `"intact"`       | `false`        | PDF not modified; origin appears institutional — integrity check is applicable and passed    |
+| `"modified"`     | `true`         | PDF was tampered after creation — regardless of origin                                       |
+| `"inconclusive"` | `false`        | PDF not modified, but created with consumer software — integrity check is **not applicable** |
+
+**What we detect:**
+
+- Structural modifications (incremental updates, xref table additions)
+- Metadata date discrepancies
+- Digital signature removal or post-sign modifications
+- Suspicious tool patterns
+
+**What we don't detect:**
+
+- Document fabrication (entire content created in Word/Excel and exported to PDF)
+- Visual/content differences without structural changes
+- Password-protected content
+- Cryptographic signature validity
+
+---
+
 ##### `analysis.been_changed`
 
 - **Type:** `boolean`
 - **Always Present:** Yes
+- **Description:** **AUXILIARY FIELD** — kept for backward compatibility. Use `analysis.status` for new integrations.
 - **Possible Values:**
   - `true` - PDF has been modified after initial creation
-  - `false` - PDF appears to be in its original state
-- **Description:** **PRIMARY INDICATOR** of whether the PDF document has been modified
+  - `false` - PDF appears to be in its original state (but may be `inconclusive` if consumer software origin)
+- **Relationship to `status`:** `been_changed = true` always means `status = "modified"`. `been_changed = false` means either `"intact"` or `"inconclusive"` depending on origin.
 - **Detection Methods:**
   - Different creation and modification dates in metadata
   - Presence of incremental update sections in PDF structure
@@ -470,10 +542,16 @@ Returns an `AnalysisResponse` object containing the analysis results.
 {
   "id": "3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21",
   "analysis": {
+    "status": "modified",
     "been_changed": true,
     "risk_score": 75,
     "confidence_level": "high",
     "verdict_reasoning": "Digital signature was removed from the document",
+    "origin": {
+      "type": "institutional",
+      "software": null,
+      "warning": null
+    },
     "metadata": {
       "creation_date": "2024-01-15T10:30:00.000Z",
       "modification_date": "2024-02-20T14:45:00.000Z",
@@ -506,20 +584,26 @@ Returns an `AnalysisResponse` object containing the analysis results.
 }
 ```
 
-#### Example 2: Original Document (Low Risk)
+#### Example 2: Original Document (Intact)
 
 ```json
 {
   "id": "7d8e9f2a-4c5b-6d7e-8f9a-0b1c2d3e4f5a",
   "analysis": {
+    "status": "intact",
     "been_changed": false,
-    "risk_score": 10,
+    "risk_score": 0,
     "confidence_level": "high",
+    "origin": {
+      "type": "institutional",
+      "software": null,
+      "warning": null
+    },
     "metadata": {
       "creation_date": "2024-03-10T08:15:00.000Z",
       "modification_date": "2024-03-10T08:15:00.000Z",
-      "creator": "Microsoft Word for Microsoft 365",
-      "producer": "Microsoft: Print To PDF",
+      "creator": "Adobe Acrobat Pro DC",
+      "producer": "Adobe PDF Library 15.0",
       "file_size": 245632
     },
     "structure": {
@@ -543,15 +627,65 @@ Returns an `AnalysisResponse` object containing the analysis results.
 }
 ```
 
-#### Example 3: Minimal Metadata (Medium Confidence)
+#### Example 3: Inconclusive (Consumer Software Origin)
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "analysis": {
+    "status": "inconclusive",
+    "status_reason": "consumer_software_origin",
+    "been_changed": false,
+    "risk_score": 0,
+    "confidence_level": "low",
+    "origin": {
+      "type": "consumer_software",
+      "software": "Microsoft Excel",
+      "warning": "This document was created with consumer software (Microsoft Excel). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+    },
+    "metadata": {
+      "creation_date": "2024-03-01T09:00:00.000Z",
+      "modification_date": "2024-03-01T09:00:00.000Z",
+      "creator": "Microsoft Excel 2019",
+      "producer": "Microsoft: Print To PDF",
+      "file_size": 204800
+    },
+    "structure": {
+      "has_incremental_updates": false,
+      "update_chain_length": 1,
+      "xref_count": 1,
+      "pdf_version": "1.7"
+    },
+    "signatures": {
+      "has_digital_signature": false,
+      "signature_count": 0,
+      "signature_removed": false,
+      "modifications_after_signature": false
+    },
+    "threats": {
+      "has_javascript": false,
+      "has_embedded_files": false
+    },
+    "findings": []
+  }
+}
+```
+
+#### Example 4: Minimal Metadata (Medium Confidence)
 
 ```json
 {
   "id": "506a6b1b-1360-48a2-b389-abb346f85d04",
   "analysis": {
+    "status": "modified",
     "been_changed": true,
     "risk_score": 45,
     "confidence_level": "medium",
+    "origin": {
+      "type": "unknown",
+      "software": null,
+      "warning": null
+    },
     "metadata": {
       "creation_date": null,
       "modification_date": null,
@@ -848,24 +982,25 @@ curl -X POST https://htpbe.tech/api/v1/analyze \
 
 **Available mock URLs** (all at `https://htpbe.tech/api/v1/test/`):
 
-| URL                       | `been_changed` | `risk_score` | `confidence_level` | Description                                                 |
-| ------------------------- | -------------- | ------------ | ------------------ | ----------------------------------------------------------- |
-| `clean.pdf`               | `false`        | `0`          | `low`              | Original, no modifications                                  |
-| `clean-no-dates.pdf`      | `false`        | `0`          | `low`              | Original, metadata dates absent                             |
-| `modified-low.pdf`        | `true`         | `25`         | `medium`           | Minor modification (1 incremental update)                   |
-| `modified-medium.pdf`     | `true`         | `50`         | `medium`           | Moderate modification (creator/producer mismatch)           |
-| `modified-high.pdf`       | `true`         | `75`         | `high`             | Significant modification (multiple updates, tool change)    |
-| `modified-critical.pdf`   | `true`         | `95`         | `high`             | Critical: signature removed + JavaScript detected           |
-| `dates-mismatch.pdf`      | `true`         | `40`         | `medium`           | Dates differ (14-day gap between creation and modification) |
-| `dates-same.pdf`          | `false`        | `0`          | `low`              | Creation and modification dates identical                   |
-| `incremental-updates.pdf` | `true`         | `60`         | `high`             | 6 incremental update sections detected                      |
-| `multiple-xref.pdf`       | `true`         | `55`         | `medium`           | 4 cross-reference tables                                    |
-| `signature-valid.pdf`     | `false`        | `0`          | `low`              | Digitally signed, no post-sign modifications                |
-| `signature-removed.pdf`   | `true`         | `90`         | `high`             | Critical: digital signature removed                         |
-| `modified-after-sign.pdf` | `true`         | `85`         | `high`             | Modified after digital signing (signature invalidated)      |
-| `javascript.pdf`          | `true`         | `70`         | `high`             | Contains embedded JavaScript                                |
-| `embedded-files.pdf`      | `true`         | `65`         | `medium`           | Contains embedded file attachments                          |
-| `both-threats.pdf`        | `true`         | `95`         | `high`             | JavaScript + embedded files + signature removed             |
+| URL                       | `status`       | `been_changed` | `risk_score` | Description                                                 |
+| ------------------------- | -------------- | -------------- | ------------ | ----------------------------------------------------------- |
+| `clean.pdf`               | `intact`       | `false`        | `0`          | Original, no modifications                                  |
+| `clean-no-dates.pdf`      | `intact`       | `false`        | `0`          | Original, metadata dates absent                             |
+| `modified-low.pdf`        | `modified`     | `true`         | `25`         | Minor modification (1 incremental update)                   |
+| `modified-medium.pdf`     | `modified`     | `true`         | `50`         | Moderate modification (creator/producer mismatch)           |
+| `modified-high.pdf`       | `modified`     | `true`         | `75`         | Significant modification (multiple updates, tool change)    |
+| `modified-critical.pdf`   | `modified`     | `true`         | `95`         | Critical: signature removed + JavaScript detected           |
+| `dates-mismatch.pdf`      | `modified`     | `true`         | `40`         | Dates differ (14-day gap between creation and modification) |
+| `dates-same.pdf`          | `inconclusive` | `false`        | `0`          | LibreOffice origin — integrity check not applicable         |
+| `incremental-updates.pdf` | `modified`     | `true`         | `60`         | 6 incremental update sections detected                      |
+| `multiple-xref.pdf`       | `modified`     | `true`         | `55`         | 4 cross-reference tables                                    |
+| `signature-valid.pdf`     | `intact`       | `false`        | `0`          | Digitally signed, no post-sign modifications                |
+| `signature-removed.pdf`   | `modified`     | `true`         | `90`         | Critical: digital signature removed                         |
+| `modified-after-sign.pdf` | `modified`     | `true`         | `85`         | Modified after digital signing (signature invalidated)      |
+| `javascript.pdf`          | `modified`     | `true`         | `70`         | Contains embedded JavaScript                                |
+| `embedded-files.pdf`      | `modified`     | `true`         | `65`         | Contains embedded file attachments                          |
+| `both-threats.pdf`        | `modified`     | `true`         | `95`         | JavaScript + embedded files + signature removed             |
+| `inconclusive.pdf`        | `inconclusive` | `false`        | `0`          | Microsoft Excel origin — integrity check not applicable     |
 
 ---
 

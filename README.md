@@ -166,6 +166,14 @@ Human-readable version: [htpbe.tech/for-ai](https://htpbe.tech/for-ai)
 
 ## Changelog
 
+### v3.0.0 — March 2026
+
+- **New:** `analysis.status` primary verdict field — `"intact"` | `"modified"` | `"inconclusive"`
+- **New:** `analysis.status_reason` — machine-readable reason code for inconclusive results
+- **New:** `analysis.origin` object — detects consumer software (Microsoft Office, LibreOffice, Apple Pages, etc.) and explains why the check may not be applicable
+- **Breaking change (soft):** `analysis.been_changed` is now marked auxiliary; `status` is the recommended field for new integrations. `been_changed` is retained for backward compatibility.
+- **New test URL:** `inconclusive.pdf` — returns `status: "inconclusive"` for testing consumer software origin detection
+
 ### v2.0.0 — February 2026
 
 - Improved detection accuracy for PDFs processed by online editors
