@@ -226,6 +226,20 @@ Returns an `AnalysisResponse` object containing the analysis results.
 | `"modified"`     | `true`         | PDF was tampered after creation — regardless of origin                                       |
 | `"inconclusive"` | `false`        | PDF not modified, but created with consumer software — integrity check is **not applicable** |
 
+**How `status: "modified"` is determined:**
+
+The verdict is set to `"modified"` when any of the following conditions are met:
+
+1. **Critical structural markers** (highest priority, always conclusive):
+   - Incremental update sections detected in PDF structure
+   - Modifications found after digital signature was applied
+   - Digital signature was removed
+   - Creation and modification dates differ
+2. **Aggregate risk score** (when no critical markers are found):
+   - `risk_score >= 75` triggers `"modified"` based on the cumulative weight of suspicious signals
+
+This means a document with `risk_score: 65` will have `status: "intact"` — insufficient evidence was found to make a definitive call. Use `status` as the authoritative verdict and treat `risk_score` as a supporting signal.
+
 **What we detect:**
 
 - Structural modifications (incremental updates, xref table additions)
@@ -269,6 +283,11 @@ Returns an `AnalysisResponse` object containing the analysis results.
   - **`31-60` (Medium Risk):** Some modifications detected. Review recommended.
   - **`61-85` (High Risk):** Significant modifications detected. High probability of tampering.
   - **`86-100` (Critical Risk):** Severe tampering detected. Document integrity compromised.
+- **Relationship to `status`:** The score directly influences the verdict:
+  - `risk_score >= 75` (when no critical structural markers are found) → `status: "modified"`
+  - `risk_score < 75` with no critical markers → `status: "intact"` or `"inconclusive"`
+  - Critical markers (signature removed, incremental updates, post-sign modifications) override the score and always produce `status: "modified"` regardless of score value
+- **Important:** A score below 75 does not guarantee the document is unmodified — it means no sufficient evidence was found. Always rely on `status` as the authoritative verdict.
 - **Calculation:** Based on multiple factors including:
   - Number and severity of modifications
   - Presence of critical markers (signature removal, date discrepancies)
