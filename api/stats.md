@@ -101,11 +101,9 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   maxFileSize: number;
   maxUpdateChain: number;
   noCreationDate: number;
-  avgRiskScore: number;
   versionDistribution: Array<{ version: string; count: number }>;
   totalObjects: number;
   embeddedFiles: number;
-  suspiciousTools: number;
   incrementalUpdates: number;
   avgMetadataScore: number;
   signedFiles: number;
@@ -293,19 +291,6 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Impact:** PDFs without dates are harder to verify for modifications
 - **Percentage:** `(noCreationDate / totalChecks) * 100`
 
-##### `avgRiskScore`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` to `100`
-- **Description:** Average risk score across all checks
-- **Example:** `42` = medium average risk
-- **Interpretation:**
-  - `0-30` - Most documents are low risk (original)
-  - `31-60` - Mixed portfolio with some modifications
-  - `61-85` - Many high-risk documents
-  - `86-100` - Critical: many severely tampered documents
-
 ##### `versionDistribution`
 
 - **Type:** `Array<{ version: string; count: number }>` (array of objects)
@@ -347,19 +332,6 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Example:** `23` = 1.8% of documents have attachments
 - **Security Risk:** Attachments can hide malware
 - **Percentage:** `(embeddedFiles / totalChecks) * 100`
-
-##### `suspiciousTools`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
-- **Description:** Number of PDFs with suspicious creator/producer combinations known to indicate forgery
-- **Example:** `8` = 0.6% flagged as suspicious
-- **Red Flag:** High numbers suggest potential document forgery in your workflow
-- **Examples of Suspicious Patterns:**
-  - Creator: "Microsoft Word 2003" + Producer: "Adobe PDF Library 15.0" (anachronistic)
-  - Mismatched tool versions
-  - Generic tool names with specific version numbers
 
 ##### `incrementalUpdates`
 
@@ -466,7 +438,6 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   "maxFileSize": 9437184,
   "maxUpdateChain": 12,
   "noCreationDate": 45,
-  "avgRiskScore": 42,
   "versionDistribution": [
     { "version": "1.7", "count": 890 },
     { "version": "1.4", "count": 250 },
@@ -475,7 +446,6 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   ],
   "totalObjects": 567890,
   "embeddedFiles": 23,
-  "suspiciousTools": 8,
   "incrementalUpdates": 623,
   "avgMetadataScore": 78,
   "signedFiles": 234,
@@ -544,13 +514,10 @@ const stats = await fetch('https://htpbe.tech/api/v1/stats', {
 const dashboard = {
   totalDocuments: stats.totalChecks,
   modificationRate: ((stats.editedFiles / stats.totalChecks) * 100).toFixed(1) + '%',
-  avgRisk: stats.avgRiskScore,
   topTool: stats.mostUsedProducer,
 
-  // Alert if high risk
+  // Alert if critical conditions detected
   alerts: [
-    stats.avgRiskScore > 60 ? 'High average risk score' : null,
-    stats.suspiciousTools > 0 ? `${stats.suspiciousTools} suspicious tools detected` : null,
     stats.signedButModified > 0 ? `${stats.signedButModified} signed docs were modified` : null,
   ].filter(Boolean),
 };
@@ -578,10 +545,8 @@ report = {
     'modification_rate': f"{(stats['editedFiles'] / stats['totalChecks'] * 100):.1f}%",
     'high_risk_indicators': {
         'signed_but_modified': stats['signedButModified'],
-        'suspicious_tools': stats['suspiciousTools'],
         'javascript_files': stats['jsFiles']
-    },
-    'avg_risk_score': stats['avgRiskScore']
+    }
 }
 
 print(f"Compliance Report - {report['period']}")
@@ -681,22 +646,12 @@ const securityMetrics = {
         : '0%',
   },
 
-  // Suspicious patterns
-  suspiciousTools: {
-    count: stats.suspiciousTools,
-    percentage: ((stats.suspiciousTools / stats.totalChecks) * 100).toFixed(1) + '%',
-  },
-
   // Potentially dangerous features
   riskyFeatures: {
     javascript: stats.jsFiles,
     embeddedFiles: stats.embeddedFiles,
     combined: stats.jsFiles + stats.embeddedFiles,
   },
-
-  // Overall risk
-  avgRiskScore: stats.avgRiskScore,
-  riskLevel: stats.avgRiskScore >= 70 ? 'HIGH' : stats.avgRiskScore >= 40 ? 'MEDIUM' : 'LOW',
 };
 
 // Alert if any critical thresholds exceeded

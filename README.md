@@ -19,13 +19,12 @@ HTPBE analyzes a PDF file and returns one of three verdicts:
 
 **Important:** "Intact" does not mean the document is authentic. It means the file was not modified after it was created. A document fabricated from scratch in Word and exported to PDF will also show as Intact — because it was never modified, only created with false content.
 
-The analysis examines 5 layers:
+The analysis examines 4 layers:
 
 1. **Metadata** — creation date, modification date, creator app, producer app
 2. **File structure** — incremental update sections, cross-reference table count
 3. **Digital signatures** — presence, integrity, post-signing modifications
 4. **Content** — embedded JavaScript, attachments, page count anomalies
-5. **Risk scoring** — weighted confidence score (0–100) combining all signals
 
 ---
 
@@ -80,8 +79,6 @@ Response:
   "analysis": {
     "status": "modified",
     "been_changed": true,
-    "risk_score": 85,
-    "confidence_level": "high",
     "verdict_reasoning": "Known PDF editing tool detected (iLovePDF)",
     "origin": {
       "type": "institutional",
@@ -153,12 +150,12 @@ curl -X POST https://htpbe.tech/api/v1/analyze \
 
 Selected mock URLs (see [api/analyze.md](./api/analyze.md#testing-with-mock-urls) for full list of 16):
 
-- `.../test/clean.pdf` — Original, risk 0
-- `.../test/modified-low.pdf` — Modified, risk 25
-- `.../test/modified-high.pdf` — Modified, risk 75
-- `.../test/modified-critical.pdf` — Modified, risk 95 (signature removed + JS)
-- `.../test/signature-removed.pdf` — Modified, risk 90
-- `.../test/both-threats.pdf` — Modified, risk 95 (JS + embedded files + signature removed)
+- `.../test/clean.pdf` — Original, no modifications
+- `.../test/modified-low.pdf` — Modified, minor modification
+- `.../test/modified-high.pdf` — Modified, multiple updates and tool change
+- `.../test/modified-critical.pdf` — Modified, signature removed + JS detected
+- `.../test/signature-removed.pdf` — Modified, digital signature removed
+- `.../test/both-threats.pdf` — Modified, JS + embedded files + signature removed
 
 ---
 

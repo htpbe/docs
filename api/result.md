@@ -131,8 +131,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
   // Analysis Results
   been_changed: boolean;  // auxiliary — prefer status
-  risk_score: number;
-  confidence_level: string;
 
   // PDF Metadata (Unix timestamps)
   creation_date: number | null;
@@ -148,7 +146,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   // Metadata Analysis
   date_sequence_valid: boolean;
   metadata_completeness_score: number;
-  suspicious_tool_pattern: boolean;
 
   // PDF Structure
   xref_count: number;
@@ -277,21 +274,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   - `true` - Modified
   - `false` - Original
 
-##### `risk_score`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` to `100`
-- **Description:** Overall modification risk assessment
-- **Risk Levels:** See [analyze.md](./analyze.md#analysisrisk_score)
-
-##### `confidence_level`
-
-- **Type:** `string` (enum)
-- **Always Present:** Yes
-- **Possible Values:** `"low"`, `"medium"`, `"high"`, `"very_high"`
-- **Description:** Confidence in modification detection
-
 ---
 
 #### PDF Metadata Fields (Unix Timestamps)
@@ -349,7 +331,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   - `"Modifications detected after digital signature"` - File modified after signing
   - `"Digital signature was removed"` - Signature deletion detected (critical tampering)
 - **Usage:** If not null, this is **definitive evidence** of modification
-- **Impact:** When set, `modification_confidence` will be `"100%"` and `risk_score` will be high
+- **Impact:** When set, `modification_confidence` will be `"100%"`
 
 ##### `modification_confidence`
 
@@ -358,12 +340,9 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Description:** Confidence level specifically for critical modifications
 - **Possible Values:**
   - `"none"` - No critical modification detected
-  - `"high"` - High confidence based on risk score ≥75 but no structural proof
+  - `"high"` - High confidence based on structural indicators but no conclusive proof
   - `"100%"` - Absolute certainty based on structural evidence (when `critical_modification_marker` is set)
 - **Null When:** Legacy records before this field was added
-- **Difference from `confidence_level`:**
-  - `confidence_level` = overall analysis confidence
-  - `modification_confidence` = confidence in critical modifications specifically
 
 ##### `verdict_reasoning`
 
@@ -411,20 +390,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   - `30-49` - Limited metadata
   - `0-29` - Very sparse metadata (may hinder analysis)
 - **Impact:** Higher scores enable more confident modification detection
-
-##### `suspicious_tool_pattern`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Description:** Whether the creator/producer combination matches known forgery patterns
-- **Possible Values:**
-  - `true` - **Suspicious** - Tool combination is known to be used in document forgery
-  - `false` - Tool combination appears normal
-- **Examples of Suspicious Patterns:**
-  - Creator: "Microsoft Word" + Producer: "Adobe Acrobat Pro DC" (Word doesn't use Acrobat to save)
-  - Mismatched versions (e.g., "Word 2003" + "PDF Library 15.0" from 2020)
-  - Generic tool names with specific version numbers
-- **Note:** This is a heuristic and may have false positives
 
 ---
 
@@ -582,8 +547,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
     "warning": null
   },
   "been_changed": true,
-  "risk_score": 75,
-  "confidence_level": "high",
   "creation_date": 1704110400,
   "modification_date": 1707840000,
   "creator": "Microsoft Word for Microsoft 365",
@@ -593,7 +556,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   "verdict_reasoning": "Digital signature was removed from the document",
   "date_sequence_valid": true,
   "metadata_completeness_score": 90,
-  "suspicious_tool_pattern": false,
   "xref_count": 2,
   "has_incremental_updates": true,
   "update_chain_length": 3,
@@ -760,7 +722,6 @@ const result = await getResult(checkId);
 
 const report = {
   summary: result.been_changed ? 'Modified' : 'Original',
-  risk: getRiskLevel(result.risk_score),
 
   // Use fields not available in analyze endpoint
   details: {

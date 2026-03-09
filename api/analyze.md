@@ -119,8 +119,6 @@ Returns an `AnalysisResponse` object containing the analysis results.
     status: "intact" | "modified" | "inconclusive";   // PRIMARY verdict
     status_reason?: "consumer_software_origin";         // only when inconclusive
     been_changed: boolean;                              // AUXILIARY (backward-compat)
-    risk_score: number;
-    confidence_level: string;
     verdict_reasoning: string | undefined;
     origin: {
       type: "consumer_software" | "institutional" | "unknown";
@@ -228,17 +226,14 @@ Returns an `AnalysisResponse` object containing the analysis results.
 
 **How `status: "modified"` is determined:**
 
-The verdict is set to `"modified"` when any of the following conditions are met:
+The verdict is set to `"modified"` when any of the following critical markers are found:
 
-1. **Critical structural markers** (highest priority, always conclusive):
-   - Incremental update sections detected in PDF structure
-   - Modifications found after digital signature was applied
-   - Digital signature was removed
-   - Creation and modification dates differ
-2. **Aggregate risk score** (when no critical markers are found):
-   - `risk_score >= 75` triggers `"modified"` based on the cumulative weight of suspicious signals
+1. Incremental update sections detected in PDF structure
+2. Modifications found after digital signature was applied
+3. Digital signature was removed
+4. Creation and modification dates differ
 
-This means a document with `risk_score: 65` will have `status: "intact"` — insufficient evidence was found to make a definitive call. Use `status` as the authoritative verdict and treat `risk_score` as a supporting signal.
+The verdict comes solely from these critical markers. Use `status` as the authoritative verdict.
 
 **What we detect:**
 
@@ -271,41 +266,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
   - Removed or invalidated digital signatures
   - Multiple cross-reference tables indicating multiple saves
   - Suspicious metadata patterns
-
-##### `analysis.risk_score`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` to `100`
-- **Description:** Overall modification risk assessment score
-- **Risk Levels:**
-  - **`0-30` (Low Risk):** Minimal or no modifications detected. PDF appears authentic.
-  - **`31-60` (Medium Risk):** Some modifications detected. Review recommended.
-  - **`61-85` (High Risk):** Significant modifications detected. High probability of tampering.
-  - **`86-100` (Critical Risk):** Severe tampering detected. Document integrity compromised.
-- **Relationship to `status`:** The score directly influences the verdict:
-  - `risk_score >= 75` (when no critical structural markers are found) → `status: "modified"`
-  - `risk_score < 75` with no critical markers → `status: "intact"` or `"inconclusive"`
-  - Critical markers (signature removed, incremental updates, post-sign modifications) override the score and always produce `status: "modified"` regardless of score value
-- **Important:** A score below 75 does not guarantee the document is unmodified — it means no sufficient evidence was found. Always rely on `status` as the authoritative verdict.
-- **Calculation:** Based on multiple factors including:
-  - Number and severity of modifications
-  - Presence of critical markers (signature removal, date discrepancies)
-  - Structural anomalies
-  - Metadata completeness and consistency
-
-##### `analysis.confidence_level`
-
-- **Type:** `string` (enum)
-- **Always Present:** Yes
-- **Possible Values:**
-  - `"low"` - Uncertain. Limited evidence available.
-  - `"medium"` - Likely. Some evidence suggests modification.
-  - `"high"` - Very confident. Strong evidence of modification/originality.
-  - `"very_high"` - Certain. Definitive structural or cryptographic evidence.
-- **Description:** System's confidence in the modification detection
-- **When Low:** PDF has minimal metadata or structural information to analyze
-- **When Very High:** PDF has clear structural evidence (e.g., signature removed, multiple xref tables)
 
 ##### `analysis.verdict_reasoning`
 
@@ -500,7 +460,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
 - **Description:** Whether a digital signature was removed from the PDF
 - **Detection Method:** Analyzes PDF structure for orphaned signature references or signature field remnants
 - **Severity:** This is a **critical tampering indicator** - removing a signature usually means someone wanted to hide authentication
-- **Impact on Risk:** Sets `risk_score` to ≥80 and `confidence_level` to `"very_high"`
 
 ##### `analysis.signatures.modifications_after_signature`
 
@@ -519,7 +478,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
   - Form field modifications
   - Metadata changes
   - Malicious tampering
-- **Impact on Risk:** Significantly increases `risk_score`
 
 ---
 
@@ -563,8 +521,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
   "analysis": {
     "status": "modified",
     "been_changed": true,
-    "risk_score": 75,
-    "confidence_level": "high",
     "verdict_reasoning": "Digital signature was removed from the document",
     "origin": {
       "type": "institutional",
@@ -611,8 +567,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
   "analysis": {
     "status": "intact",
     "been_changed": false,
-    "risk_score": 0,
-    "confidence_level": "high",
     "origin": {
       "type": "institutional",
       "software": null,
@@ -655,8 +609,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
     "status": "inconclusive",
     "status_reason": "consumer_software_origin",
     "been_changed": false,
-    "risk_score": 0,
-    "confidence_level": "low",
     "origin": {
       "type": "consumer_software",
       "software": "Microsoft Excel",
@@ -698,8 +650,6 @@ This means a document with `risk_score: 65` will have `status: "intact"` — ins
   "analysis": {
     "status": "modified",
     "been_changed": true,
-    "risk_score": 45,
-    "confidence_level": "medium",
     "origin": {
       "type": "unknown",
       "software": null,
@@ -1001,25 +951,25 @@ curl -X POST https://htpbe.tech/api/v1/analyze \
 
 **Available mock URLs** (all at `https://htpbe.tech/api/v1/test/`):
 
-| URL                       | `status`       | `been_changed` | `risk_score` | Description                                                 |
-| ------------------------- | -------------- | -------------- | ------------ | ----------------------------------------------------------- |
-| `clean.pdf`               | `intact`       | `false`        | `0`          | Original, no modifications                                  |
-| `clean-no-dates.pdf`      | `intact`       | `false`        | `0`          | Original, metadata dates absent                             |
-| `modified-low.pdf`        | `modified`     | `true`         | `25`         | Minor modification (1 incremental update)                   |
-| `modified-medium.pdf`     | `modified`     | `true`         | `50`         | Moderate modification (creator/producer mismatch)           |
-| `modified-high.pdf`       | `modified`     | `true`         | `75`         | Significant modification (multiple updates, tool change)    |
-| `modified-critical.pdf`   | `modified`     | `true`         | `95`         | Critical: signature removed + JavaScript detected           |
-| `dates-mismatch.pdf`      | `modified`     | `true`         | `40`         | Dates differ (14-day gap between creation and modification) |
-| `dates-same.pdf`          | `inconclusive` | `false`        | `0`          | LibreOffice origin — integrity check not applicable         |
-| `incremental-updates.pdf` | `modified`     | `true`         | `60`         | 6 incremental update sections detected                      |
-| `multiple-xref.pdf`       | `modified`     | `true`         | `55`         | 4 cross-reference tables                                    |
-| `signature-valid.pdf`     | `intact`       | `false`        | `0`          | Digitally signed, no post-sign modifications                |
-| `signature-removed.pdf`   | `modified`     | `true`         | `90`         | Critical: digital signature removed                         |
-| `modified-after-sign.pdf` | `modified`     | `true`         | `85`         | Modified after digital signing (signature invalidated)      |
-| `javascript.pdf`          | `modified`     | `true`         | `70`         | Contains embedded JavaScript                                |
-| `embedded-files.pdf`      | `modified`     | `true`         | `65`         | Contains embedded file attachments                          |
-| `both-threats.pdf`        | `modified`     | `true`         | `95`         | JavaScript + embedded files + signature removed             |
-| `inconclusive.pdf`        | `inconclusive` | `false`        | `0`          | Microsoft Excel origin — integrity check not applicable     |
+| URL                       | `status`       | `been_changed` | Description                                                 |
+| ------------------------- | -------------- | -------------- | ----------------------------------------------------------- |
+| `clean.pdf`               | `intact`       | `false`        | Original, no modifications                                  |
+| `clean-no-dates.pdf`      | `intact`       | `false`        | Original, metadata dates absent                             |
+| `modified-low.pdf`        | `modified`     | `true`         | Minor modification (1 incremental update)                   |
+| `modified-medium.pdf`     | `modified`     | `true`         | Moderate modification (creator/producer mismatch)           |
+| `modified-high.pdf`       | `modified`     | `true`         | Significant modification (multiple updates, tool change)    |
+| `modified-critical.pdf`   | `modified`     | `true`         | Critical: signature removed + JavaScript detected           |
+| `dates-mismatch.pdf`      | `modified`     | `true`         | Dates differ (14-day gap between creation and modification) |
+| `dates-same.pdf`          | `inconclusive` | `false`        | LibreOffice origin — integrity check not applicable         |
+| `incremental-updates.pdf` | `modified`     | `true`         | 6 incremental update sections detected                      |
+| `multiple-xref.pdf`       | `modified`     | `true`         | 4 cross-reference tables                                    |
+| `signature-valid.pdf`     | `intact`       | `false`        | Digitally signed, no post-sign modifications                |
+| `signature-removed.pdf`   | `modified`     | `true`         | Critical: digital signature removed                         |
+| `modified-after-sign.pdf` | `modified`     | `true`         | Modified after digital signing (signature invalidated)      |
+| `javascript.pdf`          | `modified`     | `true`         | Contains embedded JavaScript                                |
+| `embedded-files.pdf`      | `modified`     | `true`         | Contains embedded file attachments                          |
+| `both-threats.pdf`        | `modified`     | `true`         | JavaScript + embedded files + signature removed             |
+| `inconclusive.pdf`        | `inconclusive` | `false`        | Microsoft Excel origin — integrity check not applicable     |
 
 ---
 

@@ -79,8 +79,6 @@ Response:
   "analysis": {
     "status": "modified",
     "been_changed": true,
-    "risk_score": 75,
-    "confidence_level": "high",
     "origin": {
       "type": "institutional",
       "software": null,
@@ -129,46 +127,46 @@ All 17 test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (inclu
 
 Use these to test how your application handles documents that pass verification.
 
-| URL                                                  | `status` | `been_changed` | `risk_score` | Notes                                                               |
-| ---------------------------------------------------- | -------- | -------------- | ------------ | ------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | `false`        | `0`          | Typical original document with full metadata                        |
-| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | `false`        | `0`          | Original document — metadata dates absent (e.g. auto-generated PDF) |
-| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | `false`        | `0`          | Digitally signed, no post-sign modifications                        |
+| URL                                                  | `status` | `been_changed` | Notes                                                               |
+| ---------------------------------------------------- | -------- | -------------- | ------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | `false`        | Typical original document with full metadata                        |
+| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | `false`        | Original document — metadata dates absent (e.g. auto-generated PDF) |
+| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | `false`        | Digitally signed, no post-sign modifications                        |
 
 ### Inconclusive (Consumer Software Origin)
 
 Use these to test how your application handles the case where integrity check is not applicable — PDFs created with office or consumer software cannot be verified.
 
-| URL                                               | `status`       | `been_changed` | `risk_score` | Notes                                                   |
-| ------------------------------------------------- | -------------- | -------------- | ------------ | ------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-same.pdf`   | `inconclusive` | `false`        | `0`          | LibreOffice origin — integrity check not applicable     |
-| `https://htpbe.tech/api/v1/test/inconclusive.pdf` | `inconclusive` | `false`        | `0`          | Microsoft Excel origin — integrity check not applicable |
+| URL                                               | `status`       | `been_changed` | Notes                                                   |
+| ------------------------------------------------- | -------------- | -------------- | ------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/dates-same.pdf`   | `inconclusive` | `false`        | LibreOffice origin — integrity check not applicable     |
+| `https://htpbe.tech/api/v1/test/inconclusive.pdf` | `inconclusive` | `false`        | Microsoft Excel origin — integrity check not applicable |
 
-### Modified — Graduated Risk Levels
+### Modified — Graduated Severity Levels
 
-Use these to test risk thresholds, conditional logic, and UI states for different levels of tampering.
+Use these to test conditional logic and UI states for different levels of tampering.
 
-| URL                                                      | `status`   | `been_changed` | `risk_score` | Notes                                                    |
-| -------------------------------------------------------- | ---------- | -------------- | ------------ | -------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`      | `modified` | `true`         | `40`         | Modification date 14 days after creation date            |
-| `https://htpbe.tech/api/v1/test/modified-low.pdf`        | `modified` | `true`         | `25`         | Minor modification — one incremental update detected     |
-| `https://htpbe.tech/api/v1/test/modified-medium.pdf`     | `modified` | `true`         | `50`         | Moderate modification — creator/producer mismatch        |
-| `https://htpbe.tech/api/v1/test/multiple-xref.pdf`       | `modified` | `true`         | `55`         | 4 cross-reference tables detected                        |
-| `https://htpbe.tech/api/v1/test/incremental-updates.pdf` | `modified` | `true`         | `60`         | 6 incremental update sections                            |
-| `https://htpbe.tech/api/v1/test/embedded-files.pdf`      | `modified` | `true`         | `65`         | Embedded file attachments added after creation           |
-| `https://htpbe.tech/api/v1/test/javascript.pdf`          | `modified` | `true`         | `70`         | JavaScript code embedded in PDF                          |
-| `https://htpbe.tech/api/v1/test/modified-high.pdf`       | `modified` | `true`         | `75`         | Significant modification — multiple updates, tool change |
+| URL                                                      | `status`   | `been_changed` | Notes                                                    |
+| -------------------------------------------------------- | ---------- | -------------- | -------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`      | `modified` | `true`         | Modification date 14 days after creation date            |
+| `https://htpbe.tech/api/v1/test/modified-low.pdf`        | `modified` | `true`         | Minor modification — one incremental update detected     |
+| `https://htpbe.tech/api/v1/test/modified-medium.pdf`     | `modified` | `true`         | Moderate modification — creator/producer mismatch        |
+| `https://htpbe.tech/api/v1/test/multiple-xref.pdf`       | `modified` | `true`         | 4 cross-reference tables detected                        |
+| `https://htpbe.tech/api/v1/test/incremental-updates.pdf` | `modified` | `true`         | 6 incremental update sections                            |
+| `https://htpbe.tech/api/v1/test/embedded-files.pdf`      | `modified` | `true`         | Embedded file attachments added after creation           |
+| `https://htpbe.tech/api/v1/test/javascript.pdf`          | `modified` | `true`         | JavaScript code embedded in PDF                          |
+| `https://htpbe.tech/api/v1/test/modified-high.pdf`       | `modified` | `true`         | Significant modification — multiple updates, tool change |
 
 ### Critical Tampering
 
 Use these to test how your application handles severe tampering alerts.
 
-| URL                                                      | `status`   | `been_changed` | `risk_score` | Notes                                                               |
-| -------------------------------------------------------- | ---------- | -------------- | ------------ | ------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/modified-after-sign.pdf` | `modified` | `true`         | `85`         | Modified after digital signing — signature invalidated              |
-| `https://htpbe.tech/api/v1/test/signature-removed.pdf`   | `modified` | `true`         | `90`         | Digital signature was removed from the document                     |
-| `https://htpbe.tech/api/v1/test/modified-critical.pdf`   | `modified` | `true`         | `95`         | Signature removed + JavaScript detected + 8-step modification chain |
-| `https://htpbe.tech/api/v1/test/both-threats.pdf`        | `modified` | `true`         | `95`         | JavaScript + embedded files + signature removed — maximum severity  |
+| URL                                                      | `status`   | `been_changed` | Notes                                                               |
+| -------------------------------------------------------- | ---------- | -------------- | ------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/modified-after-sign.pdf` | `modified` | `true`         | Modified after digital signing — signature invalidated              |
+| `https://htpbe.tech/api/v1/test/signature-removed.pdf`   | `modified` | `true`         | Digital signature was removed from the document                     |
+| `https://htpbe.tech/api/v1/test/modified-critical.pdf`   | `modified` | `true`         | Signature removed + JavaScript detected + 8-step modification chain |
+| `https://htpbe.tech/api/v1/test/both-threats.pdf`        | `modified` | `true`         | JavaScript + embedded files + signature removed — maximum severity  |
 
 ---
 
@@ -190,7 +188,6 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 - Response is valid JSON with `id` (UUID string) and `analysis` object
 - `analysis.status` is `"intact"`
 - `analysis.been_changed` is `false`
-- `analysis.risk_score` is `0`
 - `analysis.findings` is an empty array `[]`
 - `analysis.metadata.creation_date` is non-null
 - `analysis.origin.type` is `"institutional"`
@@ -231,17 +228,17 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 
 ---
 
-### 3. Risk score thresholds
+### 3. Tampering severity levels
 
-Test how your code handles each risk bracket:
+Test how your code handles each severity level:
 
-| Score range      | Test URL                                                                                                     |
-| ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| 0 (none)         | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                   |
-| 25 (low)         | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                            |
-| 40–55 (medium)   | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/multiple-xref.pdf`      |
-| 60–75 (high)     | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf` |
-| 85–95 (critical) | `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf`    |
+| Severity  | Test URL                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------ |
+| None      | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                   |
+| Minor     | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                            |
+| Moderate  | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/multiple-xref.pdf`      |
+| High      | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf` |
+| Critical  | `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf`    |
 
 ---
 
@@ -437,13 +434,11 @@ def analyze_test_document(filename: str) -> dict:
 result = analyze_test_document("clean.pdf")
 assert result["analysis"]["status"] == "intact"
 assert result["analysis"]["been_changed"] is False
-assert result["analysis"]["risk_score"] == 0
 
 # Test critical tampering
 result = analyze_test_document("both-threats.pdf")
 assert result["analysis"]["status"] == "modified"
 assert result["analysis"]["been_changed"] is True
-assert result["analysis"]["risk_score"] == 95
 assert result["analysis"]["threats"]["has_javascript"] is True
 
 # Test inconclusive (consumer software)
@@ -562,8 +557,6 @@ Original document, no modifications.
 {
   "status": "intact",
   "been_changed": false,
-  "risk_score": 0,
-  "confidence_level": "low",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
@@ -601,8 +594,6 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 {
   "status": "intact",
   "been_changed": false,
-  "risk_score": 0,
-  "confidence_level": "low",
   "origin": { "type": "unknown", "software": null, "warning": null },
   "metadata": {
     "creation_date": null,
@@ -641,8 +632,6 @@ LibreOffice origin — integrity check not applicable.
   "status": "inconclusive",
   "status_reason": "consumer_software_origin",
   "been_changed": false,
-  "risk_score": 0,
-  "confidence_level": "low",
   "origin": {
     "type": "consumer_software",
     "software": "LibreOffice",
@@ -685,8 +674,6 @@ Microsoft Excel origin — integrity check not applicable.
   "status": "inconclusive",
   "status_reason": "consumer_software_origin",
   "been_changed": false,
-  "risk_score": 0,
-  "confidence_level": "low",
   "origin": {
     "type": "consumer_software",
     "software": "Microsoft Excel",
@@ -728,8 +715,6 @@ Digitally signed, no post-sign modifications.
 {
   "status": "intact",
   "been_changed": false,
-  "risk_score": 0,
-  "confidence_level": "low",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-05T10:00:00.000Z",
@@ -767,8 +752,6 @@ Modification date 14 days after creation date.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 40,
-  "confidence_level": "medium",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-01T10:00:00.000Z",
@@ -806,8 +789,6 @@ Minor modification — one incremental update.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 25,
-  "confidence_level": "medium",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
@@ -845,8 +826,6 @@ Moderate modification — creator/producer mismatch.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 50,
-  "confidence_level": "medium",
   "origin": {
     "type": "consumer_software",
     "software": "Microsoft Word",
@@ -892,8 +871,6 @@ Moderate modification — creator/producer mismatch.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 55,
-  "confidence_level": "medium",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-10T11:00:00.000Z",
@@ -931,8 +908,6 @@ Moderate modification — creator/producer mismatch.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 60,
-  "confidence_level": "high",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-20T09:00:00.000Z",
@@ -970,8 +945,6 @@ Embedded file attachments added after creation.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 65,
-  "confidence_level": "medium",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-12T14:00:00.000Z",
@@ -1009,8 +982,6 @@ JavaScript code embedded in the PDF.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 70,
-  "confidence_level": "high",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-10T10:00:00.000Z",
@@ -1048,8 +1019,6 @@ Significant modification — multiple saves, tool changed to PDFtk.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 75,
-  "confidence_level": "high",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-01T00:00:00.000Z",
@@ -1092,8 +1061,6 @@ Modified after digital signing — signature is now invalidated.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 85,
-  "confidence_level": "high",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-01T09:00:00.000Z",
@@ -1135,8 +1102,6 @@ Digital signature was removed from the document.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 90,
-  "confidence_level": "high",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-10T10:00:00.000Z",
@@ -1174,8 +1139,6 @@ Signature removed + JavaScript detected + 8-step modification chain.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 95,
-  "confidence_level": "high",
   "origin": {
     "type": "consumer_software",
     "software": "Microsoft Excel",
@@ -1224,8 +1187,6 @@ JavaScript + embedded files + signature removed. Maximum severity.
 {
   "status": "modified",
   "been_changed": true,
-  "risk_score": 95,
-  "confidence_level": "high",
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-15T10:00:00.000Z",

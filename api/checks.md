@@ -40,8 +40,6 @@ Authorization: Bearer YOUR_API_KEY
 | `creator`   | string  | No       | Filter by Creator tool only. Case-sensitive, exact match.                         |
 | `producer`  | string  | No       | Filter by Producer tool only. Case-sensitive, exact match.                        |
 | `modified`  | boolean | No       | Filter by modification status. `true` = only modified, `false` = only unmodified. |
-| `min_risk`  | integer | No       | Minimum risk score (0-100). Inclusive.                                            |
-| `max_risk`  | integer | No       | Maximum risk score (0-100). Inclusive.                                            |
 | `from_date` | integer | No       | Unix timestamp (seconds). Return checks created on or after this date.            |
 | `to_date`   | integer | No       | Unix timestamp (seconds). Return checks created on or before this date.           |
 
@@ -82,12 +80,6 @@ Authorization: Bearer YOUR_API_KEY
 - `false` = only original PDFs (`been_changed = false`)
 - Omit parameter to get both
 
-**`min_risk`** / **`max_risk`**
-
-- Range: 0-100
-- Use together for ranges: `min_risk=60&max_risk=85` = high risk PDFs
-- Use alone: `min_risk=70` = all PDFs with risk ≥ 70
-
 **`from_date`** / **`to_date`**
 
 - Unix timestamps in seconds
@@ -120,14 +112,6 @@ curl -X GET 'https://htpbe.tech/api/v1/checks?modified=true&limit=200' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
-#### Filter by Risk Score Range
-
-```bash
-# Get high-risk PDFs (70-100)
-curl -X GET 'https://htpbe.tech/api/v1/checks?min_risk=70&limit=100' \
-  -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
-```
-
 #### Filter by Date Range
 
 ```bash
@@ -139,8 +123,8 @@ curl -X GET 'https://htpbe.tech/api/v1/checks?from_date=1738368000&to_date=17409
 #### Complex Filter Combination
 
 ```bash
-# Modified Word documents from January 2026 with high risk
-curl -X GET 'https://htpbe.tech/api/v1/checks?creator=Microsoft%20Word%20for%20Microsoft%20365&modified=true&min_risk=60&from_date=1735689600&to_date=1738368000' \
+# Modified Word documents from January 2026
+curl -X GET 'https://htpbe.tech/api/v1/checks?creator=Microsoft%20Word%20for%20Microsoft%20365&modified=true&from_date=1735689600&to_date=1738368000' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -218,10 +202,10 @@ def get_all_checks(filters=None):
 # Example: Get all modified PDFs
 modified_pdfs = get_all_checks({'modified': True})
 
-# Example: Get high-risk PDFs from specific tool
+# Example: Get modified PDFs from specific tool
 risky_adobe = get_all_checks({
     'tool': 'Adobe PDF Library 15.0',
-    'min_risk': 70
+    'modified': True
 })
 ```
 
@@ -306,7 +290,6 @@ Each item in the `checks` array has the following structure:
 
   // Modification Detection
   been_changed: boolean;
-  risk_score: number;
   metadata_score: number;
 
   // Tools
@@ -380,19 +363,6 @@ Each item in the `checks` array has the following structure:
   - `true` = PDF has been modified after original creation
   - `false` = PDF appears to be original/unmodified
 - **Algorithm:** Based on metadata analysis, update chains, and suspicious patterns
-
-##### `risk_score`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` to `100`
-- **Description:** Overall risk assessment score
-- **Interpretation:**
-  - `0-30` - Low risk (likely original)
-  - `31-60` - Medium risk (some modification indicators)
-  - `61-85` - High risk (strong modification evidence)
-  - `86-100` - Critical risk (severe tampering detected)
-- **Usage:** Filter high-risk documents, prioritize manual review
 
 ##### `metadata_score`
 
@@ -599,7 +569,6 @@ Each item in the `checks` array has the following structure:
       "filename": "invoice-2024-01.pdf",
       "check_date": 1738368000,
       "been_changed": true,
-      "risk_score": 72,
       "metadata_score": 85,
       "creator": "Microsoft Word for Microsoft 365",
       "producer": "Adobe PDF Library 15.0",
@@ -621,7 +590,6 @@ Each item in the `checks` array has the following structure:
       "filename": "contract.pdf",
       "check_date": 1738281600,
       "been_changed": false,
-      "risk_score": 15,
       "metadata_score": 92,
       "creator": "Adobe Acrobat Pro DC",
       "producer": "Adobe PDF Library 15.0",
@@ -673,7 +641,6 @@ Invalid query parameters.
 **Causes:**
 
 - `limit` is less than 1 or greater than 500
-- `min_risk` or `max_risk` outside 0-100 range
 - `from_date` or `to_date` not valid Unix timestamps
 - `modified` is not a boolean value
 
@@ -684,9 +651,6 @@ Invalid query parameters.
 ```bash
 # Wrong - limit too high
 curl 'https://htpbe.tech/api/v1/checks?limit=1000'
-
-# Wrong - invalid risk range
-curl 'https://htpbe.tech/api/v1/checks?min_risk=150'
 
 # Wrong - invalid boolean
 curl 'https://htpbe.tech/api/v1/checks?modified=yes'
@@ -801,10 +765,6 @@ async function calculateToolStats(toolName) {
       asCreator.length > 0
         ? Math.round((asCreator.filter((c) => c.been_changed).length / asCreator.length) * 100)
         : 0,
-    avgRiskScoreAsCreator:
-      asCreator.length > 0
-        ? Math.round(asCreator.reduce((sum, c) => sum + c.risk_score, 0) / asCreator.length)
-        : 0,
     avgFileSizeAsCreator:
       asCreator.length > 0
         ? Math.round(asCreator.reduce((sum, c) => sum + c.file_size, 0) / asCreator.length)
@@ -816,10 +776,6 @@ async function calculateToolStats(toolName) {
     modificationRateAsProducer:
       asProducer.length > 0
         ? Math.round((asProducer.filter((c) => c.been_changed).length / asProducer.length) * 100)
-        : 0,
-    avgRiskScoreAsProducer:
-      asProducer.length > 0
-        ? Math.round(asProducer.reduce((sum, c) => sum + c.risk_score, 0) / asProducer.length)
         : 0,
 
     // Security features
@@ -947,8 +903,7 @@ df['creation_date_dt'] = pd.to_datetime(df['creation_date'], unit='s')
 # Weekly modification trend
 weekly_stats = df.groupby(pd.Grouper(key='check_date_dt', freq='W')).agg({
     'uid': 'count',
-    'been_changed': 'sum',
-    'risk_score': 'mean'
+    'been_changed': 'sum'
 }).rename(columns={'uid': 'total_checks', 'been_changed': 'modified_count'})
 
 weekly_stats['modification_rate'] = (
@@ -958,21 +913,10 @@ weekly_stats['modification_rate'] = (
 print("\n=== Weekly Modification Trend ===")
 print(weekly_stats)
 
-# Risk score distribution
-risk_categories = pd.cut(
-    df['risk_score'],
-    bins=[0, 30, 60, 85, 100],
-    labels=['Low (0-30)', 'Medium (31-60)', 'High (61-85)', 'Critical (86-100)']
-)
-
-print("\n=== Risk Score Distribution ===")
-print(risk_categories.value_counts())
-
 # Top 10 tools by modification rate
 tool_analysis = df.groupby('producer').agg({
     'uid': 'count',
-    'been_changed': 'sum',
-    'risk_score': 'mean'
+    'been_changed': 'sum'
 }).rename(columns={'uid': 'count'})
 
 tool_analysis['mod_rate'] = (
@@ -994,20 +938,18 @@ Monitor for high-risk patterns and send alerts:
 
 ```javascript
 async function securityMonitoring() {
-  const response = await fetch('https://htpbe.tech/api/v1/checks?min_risk=70&limit=500', {
+  const response = await fetch('https://htpbe.tech/api/v1/checks?modified=true&limit=500', {
     headers: { Authorization: `Bearer ${process.env.HTPBE_API_KEY}` },
   });
 
   const data = await response.json();
-  const highRiskChecks = data.checks;
+  const modifiedChecks = data.checks;
 
   // Critical patterns to alert on
   const alerts = [];
 
   // Alert 1: Signed documents that were modified
-  const signedButModified = highRiskChecks.filter(
-    (c) => c.is_signed && c.been_changed && c.risk_score >= 70
-  );
+  const signedButModified = modifiedChecks.filter((c) => c.is_signed && c.been_changed);
   if (signedButModified.length > 0) {
     alerts.push({
       severity: 'CRITICAL',
@@ -1016,39 +958,20 @@ async function securityMonitoring() {
       samples: signedButModified.slice(0, 5).map((c) => ({
         uid: c.uid,
         filename: c.filename,
-        risk_score: c.risk_score,
       })),
     });
   }
 
-  // Alert 2: PDFs with JavaScript and high risk
-  const maliciousJS = highRiskChecks.filter((c) => c.has_javascript);
+  // Alert 2: PDFs with JavaScript that were modified
+  const maliciousJS = modifiedChecks.filter((c) => c.has_javascript);
   if (maliciousJS.length > 0) {
     alerts.push({
       severity: 'HIGH',
-      type: 'High-risk PDFs with JavaScript',
+      type: 'Modified PDFs with JavaScript',
       count: maliciousJS.length,
       samples: maliciousJS.slice(0, 5).map((c) => ({
         uid: c.uid,
         filename: c.filename,
-        risk_score: c.risk_score,
-      })),
-    });
-  }
-
-  // Alert 3: Suspicious tool patterns
-  const suspiciousTools = highRiskChecks.filter((c) => c.suspicious_patterns === 1);
-  if (suspiciousTools.length > 0) {
-    alerts.push({
-      severity: 'HIGH',
-      type: 'Suspicious tool patterns detected',
-      count: suspiciousTools.length,
-      samples: suspiciousTools.slice(0, 5).map((c) => ({
-        uid: c.uid,
-        filename: c.filename,
-        creator: c.creator,
-        producer: c.producer,
-        risk_score: c.risk_score,
       })),
     });
   }
@@ -1085,7 +1008,7 @@ setInterval(securityMonitoring, 60 * 60 * 1000);
 - **Response Time:** 100-800ms depending on result count and filters
 - **Optimization:** Use specific filters to reduce query time
 - **Pagination:** Smaller `limit` values (100-200) are faster than maximum (500)
-- **Indexes:** Database is indexed on `creator`, `producer`, `check_date`, and `risk_score`
+- **Indexes:** Database is indexed on `creator`, `producer`, and `check_date`
 
 ### Best Practices
 
