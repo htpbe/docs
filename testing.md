@@ -232,13 +232,13 @@ curl -s -X POST https://htpbe.tech/api/v1/analyze \
 
 Test how your code handles each severity level:
 
-| Severity  | Test URL                                                                                                     |
-| --------- | ------------------------------------------------------------------------------------------------------------ |
-| None      | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                   |
-| Minor     | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                            |
-| Moderate  | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/multiple-xref.pdf`      |
-| High      | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf` |
-| Critical  | `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf`    |
+| Severity | Test URL                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------ |
+| None     | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                   |
+| Minor    | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                            |
+| Moderate | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/multiple-xref.pdf`      |
+| High     | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf` |
+| Critical | `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf`    |
 
 ---
 
