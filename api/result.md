@@ -588,7 +588,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   "modification_date": 1707840000,
   "creator": "Microsoft Word for Microsoft 365",
   "producer": "Adobe PDF Library 15.0",
-  "critical_modification_marker": "signature_removed",
+  "critical_modification_marker": "Digital signature was removed",
   "modification_confidence": "100%",
   "verdict_reasoning": "Digital signature was removed from the document",
   "date_sequence_valid": true,

@@ -1,8 +1,8 @@
-# HTPBE — PDF Authenticity Checker
+# HTPBE — PDF Integrity Checker
 
-**HTPBE is a PDF authenticity checker.**
+**HTPBE checks whether a PDF has been modified after it was created.**
 
-Upload a PDF → get an instant answer: **edited** or **original**.
+Upload a PDF → get an instant verdict: **intact**, **modified**, or **cannot verify**.
 
 🌐 Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
 🔌 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
@@ -11,10 +11,13 @@ Upload a PDF → get an instant answer: **edited** or **original**.
 
 ## What It Does
 
-HTPBE analyzes a PDF file and returns a verdict:
+HTPBE analyzes a PDF file and returns one of three verdicts:
 
-- **Edited** — the file shows structural or metadata evidence of post-creation modification
-- **Original** — no modification indicators detected
+- **Intact** — no modification indicators detected; origin appears institutional
+- **Modified** — structural or metadata evidence of post-creation modification detected
+- **Cannot Verify (Inconclusive)** — the PDF was created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.); the integrity check does not apply to documents anyone can create from scratch
+
+**Important:** "Intact" does not mean the document is authentic. It means the file was not modified after it was created. A document fabricated from scratch in Word and exported to PDF will also show as Intact — because it was never modified, only created with false content.
 
 The analysis examines 5 layers:
 
@@ -73,21 +76,45 @@ Response:
 
 ```json
 {
-  "id": "abc123",
-  "is_modified": true,
-  "risk_score": 85,
-  "confidence": "high",
-  "verdict": "Modified",
-  "metadata": {
-    "creation_date": "2024-01-15T10:30:00Z",
-    "modification_date": "2024-02-20T14:45:00Z",
-    "creator": "Microsoft Word",
-    "producer": "iLovePDF"
-  },
-  "structure": {
-    "has_incremental_updates": true,
-    "update_chain_length": 2,
-    "xref_count": 3
+  "id": "3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21",
+  "analysis": {
+    "status": "modified",
+    "been_changed": true,
+    "risk_score": 85,
+    "confidence_level": "high",
+    "verdict_reasoning": "Known PDF editing tool detected (iLovePDF)",
+    "origin": {
+      "type": "institutional",
+      "software": null,
+      "warning": null
+    },
+    "metadata": {
+      "creation_date": "2024-01-15T10:30:00.000Z",
+      "modification_date": "2024-02-20T14:45:00.000Z",
+      "creator": "Microsoft Word",
+      "producer": "iLovePDF",
+      "file_size": 1048576
+    },
+    "structure": {
+      "has_incremental_updates": true,
+      "update_chain_length": 2,
+      "xref_count": 3,
+      "pdf_version": "1.7"
+    },
+    "signatures": {
+      "has_digital_signature": false,
+      "signature_count": 0,
+      "signature_removed": false,
+      "modifications_after_signature": false
+    },
+    "threats": {
+      "has_javascript": false,
+      "has_embedded_files": false
+    },
+    "findings": [
+      "Document modified 36 days after creation",
+      "Known PDF editing tool detected (iLovePDF)"
+    ]
   }
 }
 ```
