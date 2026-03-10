@@ -52,17 +52,39 @@ The server does not make any network request to the test URL. It matches the fil
 
 Test requests are completely free of quota. Running 10,000 test requests does not affect your monthly request count.
 
+### Results use deterministic synthetic IDs
+
+`POST /analyze` with a test key returns a deterministic `id` based on the test filename — not a random UUID:
+
+| Test URL                         | Returned `id`            |
+| -------------------------------- | ------------------------ |
+| `.../test/clean.pdf`             | `TEST_CLEAN`             |
+| `.../test/modified-high.pdf`     | `TEST_MODIFIED_HIGH`     |
+| `.../test/signature-removed.pdf` | `TEST_SIGNATURE_REMOVED` |
+| `.../test/dates-same.pdf`        | `TEST_DATES_SAME`        |
+
+Because the ID is deterministic, you can hardcode it in your tests without calling `POST /analyze` first.
+
+### Full two-step flow works with test keys
+
+`GET /api/v1/result/{id}` works with synthetic IDs — **but only when called with a test key**. Passing a `TEST_*` ID with a live key returns 404. This lets you test the complete two-step flow:
+
+1. `POST /analyze` → `{ "id": "TEST_MODIFIED_HIGH" }`
+2. `GET /result/TEST_MODIFIED_HIGH` → full synthetic result
+
 ### Results are NOT saved to the database
 
-A test response includes an `id` field (a random UUID generated per request), but **this record is not persisted**. Passing the returned `id` to `GET /api/v1/result/{id}` will return 404. Test keys are for validating your request/response handling — use your live key for real workflows where you need to retrieve results later.
+Synthetic results are generated on the fly — no DB writes occur. The `TEST_*` IDs are recognized by the server and resolved to mock data without any persistence.
 
 ### Responses are deterministic
 
-The same test URL always returns exactly the same `analysis` object, regardless of how many times you call it or which account you use. This makes it easy to write reliable assertions in automated tests.
+The same test URL always returns exactly the same result, regardless of how many times you call it or which account you use. This makes it easy to write reliable assertions in automated tests.
 
 ---
 
 ## Making Your First Test Request
+
+**Step 1: Submit for analysis**
 
 ```bash
 curl -X POST https://htpbe.tech/api/v1/analyze \
@@ -75,47 +97,49 @@ Response:
 
 ```json
 {
-  "id": "3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21",
-  "analysis": {
-    "status": "modified",
-    "been_changed": true,
-    "origin": {
-      "type": "institutional",
-      "software": null,
-      "warning": null
-    },
-    "metadata": {
-      "creation_date": "2024-01-01T00:00:00.000Z",
-      "modification_date": "2024-03-15T18:45:00.000Z",
-      "creator": "Adobe Acrobat Pro DC",
-      "producer": "PDFtk Server 2.02",
-      "file_size": 1048576
-    },
-    "structure": {
-      "has_incremental_updates": true,
-      "update_chain_length": 5,
-      "xref_count": 4,
-      "pdf_version": "1.7"
-    },
-    "signatures": {
-      "has_digital_signature": false,
-      "signature_count": 0,
-      "signature_removed": false,
-      "modifications_after_signature": false
-    },
-    "threats": {
-      "has_javascript": false,
-      "has_embedded_files": false
-    },
-    "findings": [
-      "Extensive modification history",
-      "Producer changed from Adobe to PDFtk",
-      "Suspicious tool pattern detected",
-      "Long modification chain"
-    ]
-  }
+  "id": "TEST_MODIFIED_HIGH"
 }
 ```
+
+**Step 2: Retrieve the full result**
+
+```bash
+curl https://htpbe.tech/api/v1/result/TEST_MODIFIED_HIGH \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY"
+```
+
+Response (excerpt):
+
+```json
+{
+  "id": "TEST_MODIFIED_HIGH",
+  "status": "modified",
+  "modification_confidence": "certain",
+  "critical_modification_marker": "Known PDF editing tool detected",
+  "verdict_reasoning": "Known PDF editing tool detected (PDFtk Server)",
+  "origin": { "type": "institutional", "software": null, "warning": null },
+  "creation_date": 1704067200,
+  "modification_date": 1710524700,
+  "creator": "Adobe Acrobat Pro DC",
+  "producer": "PDFtk Server 2.02",
+  "has_incremental_updates": true,
+  "update_chain_length": 5,
+  "xref_count": 4,
+  "pdf_version": "1.7",
+  "has_digital_signature": false,
+  "signature_removed": false,
+  "has_javascript": false,
+  "has_embedded_files": false,
+  "specific_findings": [
+    "Extensive modification history",
+    "Producer changed from Adobe to PDFtk",
+    "Suspicious tool pattern detected",
+    "Long modification chain"
+  ]
+}
+```
+
+Since IDs are deterministic, you can skip Step 1 and call `GET /result/TEST_MODIFIED_HIGH` directly in your tests.
 
 ---
 
@@ -127,46 +151,46 @@ All 17 test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (inclu
 
 Use these to test how your application handles documents that pass verification.
 
-| URL                                                  | `status` | `been_changed` | Notes                                                               |
-| ---------------------------------------------------- | -------- | -------------- | ------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | `false`        | Typical original document with full metadata                        |
-| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | `false`        | Original document — metadata dates absent (e.g. auto-generated PDF) |
-| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | `false`        | Digitally signed, no post-sign modifications                        |
+| URL                                                  | `status` | Notes                                                               |
+| ---------------------------------------------------- | -------- | ------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | Typical original document with full metadata                        |
+| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | Original document — metadata dates absent (e.g. auto-generated PDF) |
+| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | Digitally signed, no post-sign modifications                        |
 
 ### Inconclusive (Consumer Software Origin)
 
 Use these to test how your application handles the case where integrity check is not applicable — PDFs created with office or consumer software cannot be verified.
 
-| URL                                               | `status`       | `been_changed` | Notes                                                   |
-| ------------------------------------------------- | -------------- | -------------- | ------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-same.pdf`   | `inconclusive` | `false`        | LibreOffice origin — integrity check not applicable     |
-| `https://htpbe.tech/api/v1/test/inconclusive.pdf` | `inconclusive` | `false`        | Microsoft Excel origin — integrity check not applicable |
+| URL                                               | `status`       | Notes                                                   |
+| ------------------------------------------------- | -------------- | ------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/dates-same.pdf`   | `inconclusive` | LibreOffice origin — integrity check not applicable     |
+| `https://htpbe.tech/api/v1/test/inconclusive.pdf` | `inconclusive` | Microsoft Excel origin — integrity check not applicable |
 
 ### Modified — Graduated Severity Levels
 
 Use these to test conditional logic and UI states for different levels of tampering.
 
-| URL                                                      | `status`   | `been_changed` | Notes                                                    |
-| -------------------------------------------------------- | ---------- | -------------- | -------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`      | `modified` | `true`         | Modification date 14 days after creation date            |
-| `https://htpbe.tech/api/v1/test/modified-low.pdf`        | `modified` | `true`         | Minor modification — one incremental update detected     |
-| `https://htpbe.tech/api/v1/test/modified-medium.pdf`     | `modified` | `true`         | Moderate modification — creator/producer mismatch        |
-| `https://htpbe.tech/api/v1/test/multiple-xref.pdf`       | `modified` | `true`         | 4 cross-reference tables detected                        |
-| `https://htpbe.tech/api/v1/test/incremental-updates.pdf` | `modified` | `true`         | 6 incremental update sections                            |
-| `https://htpbe.tech/api/v1/test/embedded-files.pdf`      | `modified` | `true`         | Embedded file attachments added after creation           |
-| `https://htpbe.tech/api/v1/test/javascript.pdf`          | `modified` | `true`         | JavaScript code embedded in PDF                          |
-| `https://htpbe.tech/api/v1/test/modified-high.pdf`       | `modified` | `true`         | Significant modification — multiple updates, tool change |
+| URL                                                      | `status`   | Notes                                                    |
+| -------------------------------------------------------- | ---------- | -------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`      | `modified` | Modification date 14 days after creation date            |
+| `https://htpbe.tech/api/v1/test/modified-low.pdf`        | `modified` | Minor modification — one incremental update detected     |
+| `https://htpbe.tech/api/v1/test/modified-medium.pdf`     | `modified` | Moderate modification — creator/producer mismatch        |
+| `https://htpbe.tech/api/v1/test/multiple-xref.pdf`       | `modified` | 4 cross-reference tables detected                        |
+| `https://htpbe.tech/api/v1/test/incremental-updates.pdf` | `modified` | 6 incremental update sections                            |
+| `https://htpbe.tech/api/v1/test/embedded-files.pdf`      | `modified` | Embedded file attachments added after creation           |
+| `https://htpbe.tech/api/v1/test/javascript.pdf`          | `modified` | JavaScript code embedded in PDF                          |
+| `https://htpbe.tech/api/v1/test/modified-high.pdf`       | `modified` | Significant modification — multiple updates, tool change |
 
 ### Critical Tampering
 
 Use these to test how your application handles severe tampering alerts.
 
-| URL                                                      | `status`   | `been_changed` | Notes                                                               |
-| -------------------------------------------------------- | ---------- | -------------- | ------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/modified-after-sign.pdf` | `modified` | `true`         | Modified after digital signing — signature invalidated              |
-| `https://htpbe.tech/api/v1/test/signature-removed.pdf`   | `modified` | `true`         | Digital signature was removed from the document                     |
-| `https://htpbe.tech/api/v1/test/modified-critical.pdf`   | `modified` | `true`         | Signature removed + JavaScript detected + 8-step modification chain |
-| `https://htpbe.tech/api/v1/test/both-threats.pdf`        | `modified` | `true`         | JavaScript + embedded files + signature removed — maximum severity  |
+| URL                                                      | `status`   | Notes                                                               |
+| -------------------------------------------------------- | ---------- | ------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/modified-after-sign.pdf` | `modified` | Modified after digital signing — signature invalidated              |
+| `https://htpbe.tech/api/v1/test/signature-removed.pdf`   | `modified` | Digital signature was removed from the document                     |
+| `https://htpbe.tech/api/v1/test/modified-critical.pdf`   | `modified` | Signature removed + JavaScript detected + 8-step modification chain |
+| `https://htpbe.tech/api/v1/test/both-threats.pdf`        | `modified` | JavaScript + embedded files + signature removed — maximum severity  |
 
 ---
 
@@ -174,53 +198,52 @@ Use these to test how your application handles severe tampering alerts.
 
 ### 1. Basic request/response flow
 
-Verify that your integration correctly parses the response structure.
+Verify that your integration correctly handles the two-step flow.
 
 ```bash
+# Step 1: Submit for analysis — returns a synthetic ID
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}' | jq .
+  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}'
+# → { "id": "TEST_CLEAN" }
+
+# Step 2: Retrieve the full result using the synthetic ID
+curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" | jq .
 ```
 
 **What to verify:**
 
-- Response is valid JSON with `id` (UUID string) and `analysis` object
-- `analysis.status` is `"intact"`
-- `analysis.been_changed` is `false`
-- `analysis.findings` is an empty array `[]`
-- `analysis.metadata.creation_date` is non-null
-- `analysis.origin.type` is `"institutional"`
+- `POST /analyze` returns `{ "id": "TEST_CLEAN" }` — no analysis data
+- `status` is `"intact"`
+- `specific_findings` is an empty array `[]`
+- `creation_date` is non-null
+- `origin.type` is `"institutional"`
 
 ---
 
 ### 2. Three-state verdict handling
 
-The API returns three possible `status` values. Verify your application handles all three:
+The API returns three possible `status` values. Since IDs are deterministic, you can call `GET /result/{id}` directly without submitting via `POST /analyze` first:
 
 ```bash
 # intact
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}' \
-  | jq '.analysis.status'
+  | jq '.status'
 # → "intact"
 
 # modified
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_MODIFIED_HIGH \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}' \
-  | jq '.analysis.status'
+  | jq '.status'
 # → "modified"
 
 # inconclusive
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_INCONCLUSIVE \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/inconclusive.pdf"}' \
-  | jq '.analysis.status, .analysis.status_reason, .analysis.origin'
+  | jq '.status, .status_reason, .origin'
 # → "inconclusive"
 # → "consumer_software_origin"
 # → { "type": "consumer_software", "software": "Microsoft Excel", "warning": "..." }
@@ -246,11 +269,9 @@ Test how your code handles each severity level:
 
 ```bash
 # Valid signature — should not trigger alerts
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_SIGNATURE_VALID \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/signature-valid.pdf"}' \
-  | jq '.analysis.signatures'
+  | jq '{has_digital_signature, signature_count, signature_removed, modifications_after_signature}'
 ```
 
 Expected:
@@ -266,11 +287,9 @@ Expected:
 
 ```bash
 # Removed signature — critical alert
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_SIGNATURE_REMOVED \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/signature-removed.pdf"}' \
-  | jq '.analysis.signatures'
+  | jq '{has_digital_signature, signature_count, signature_removed, modifications_after_signature}'
 ```
 
 Expected:
@@ -291,11 +310,9 @@ Expected:
 Test that your UI handles JavaScript and embedded file warnings:
 
 ```bash
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_BOTH_THREATS \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/both-threats.pdf"}' \
-  | jq '.analysis.threats, .analysis.findings'
+  | jq '{has_javascript, has_embedded_files, specific_findings}'
 ```
 
 Expected:
@@ -303,15 +320,15 @@ Expected:
 ```json
 {
   "has_javascript": true,
-  "has_embedded_files": true
+  "has_embedded_files": true,
+  "specific_findings": [
+    "CRITICAL: JavaScript AND embedded files detected",
+    "Digital signature removed",
+    "Suspicious editing tool",
+    "High risk of malicious content",
+    "Multiple security threats present"
+  ]
 }
-[
-  "CRITICAL: JavaScript AND embedded files detected",
-  "Digital signature removed",
-  "Suspicious editing tool",
-  "High risk of malicious content",
-  "Multiple security threats present"
-]
 ```
 
 ---
@@ -321,11 +338,9 @@ Expected:
 Not all PDFs contain full metadata. Verify your application handles null values gracefully:
 
 ```bash
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN_NO_DATES \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/clean-no-dates.pdf"}' \
-  | jq '.analysis.metadata'
+  | jq '{creation_date, modification_date, creator, producer}'
 ```
 
 Expected:
@@ -335,8 +350,7 @@ Expected:
   "creation_date": null,
   "modification_date": null,
   "creator": "Unknown",
-  "producer": "Unknown",
-  "file_size": 102400
+  "producer": "Unknown"
 }
 ```
 
@@ -372,41 +386,55 @@ Expected HTTP status: `403`
 const BASE_URL = 'https://htpbe.tech/api/v1';
 const TEST_KEY = process.env.HTPBE_TEST_KEY; // htpbe_test_...
 
-async function analyzeTestDocument(filename: string) {
-  const response = await fetch(`${BASE_URL}/analyze`, {
+async function analyzeAndGetResult(filename: string) {
+  // Step 1: Submit for analysis
+  const analyzeRes = await fetch(`${BASE_URL}/analyze`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${TEST_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      url: `${BASE_URL}/test/${filename}`,
-    }),
+    body: JSON.stringify({ url: `${BASE_URL}/test/${filename}` }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`API error ${response.status}: ${error.error}`);
+  if (!analyzeRes.ok) {
+    const error = await analyzeRes.json();
+    throw new Error(`Analyze error ${analyzeRes.status}: ${error.error}`);
   }
 
-  return response.json();
+  const { id } = await analyzeRes.json(); // e.g. "TEST_CLEAN"
+
+  // Step 2: Retrieve the full result
+  const resultRes = await fetch(`${BASE_URL}/result/${id}`, {
+    headers: { Authorization: `Bearer ${TEST_KEY}` },
+  });
+
+  if (!resultRes.ok) {
+    const error = await resultRes.json();
+    throw new Error(`Result error ${resultRes.status}: ${error.error}`);
+  }
+
+  return resultRes.json();
 }
 
 // Test all three verdict branches
-const original = await analyzeTestDocument('clean.pdf');
-console.assert(original.analysis.status === 'intact');
-console.assert(original.analysis.been_changed === false);
+const original = await analyzeAndGetResult('clean.pdf');
+console.assert(original.status === 'intact');
 
-const tampered = await analyzeTestDocument('signature-removed.pdf');
-console.assert(tampered.analysis.status === 'modified');
-console.assert(tampered.analysis.been_changed === true);
-console.assert(tampered.analysis.signatures.signature_removed === true);
+const tampered = await analyzeAndGetResult('signature-removed.pdf');
+console.assert(tampered.status === 'modified');
+console.assert(tampered.signature_removed === true);
 
-const inconclusive = await analyzeTestDocument('inconclusive.pdf');
-console.assert(inconclusive.analysis.status === 'inconclusive');
-console.assert(inconclusive.analysis.status_reason === 'consumer_software_origin');
-console.assert(inconclusive.analysis.origin.type === 'consumer_software');
-console.assert(inconclusive.analysis.been_changed === false);
+const inconclusive = await analyzeAndGetResult('inconclusive.pdf');
+console.assert(inconclusive.status === 'inconclusive');
+console.assert(inconclusive.status_reason === 'consumer_software_origin');
+console.assert(inconclusive.origin.type === 'consumer_software');
+
+// Since IDs are deterministic you can skip POST and call GET directly:
+const result = await fetch(`${BASE_URL}/result/TEST_CLEAN`, {
+  headers: { Authorization: `Bearer ${TEST_KEY}` },
+}).then((r) => r.json());
+console.assert(result.status === 'intact');
 ```
 
 ### Python
@@ -418,8 +446,9 @@ import requests
 BASE_URL = "https://htpbe.tech/api/v1"
 TEST_KEY = os.getenv("HTPBE_TEST_KEY")  # htpbe_test_...
 
-def analyze_test_document(filename: str) -> dict:
-    response = requests.post(
+def analyze_and_get_result(filename: str) -> dict:
+    # Step 1: Submit for analysis
+    analyze_res = requests.post(
         f"{BASE_URL}/analyze",
         headers={
             "Authorization": f"Bearer {TEST_KEY}",
@@ -427,25 +456,31 @@ def analyze_test_document(filename: str) -> dict:
         },
         json={"url": f"{BASE_URL}/test/{filename}"},
     )
-    response.raise_for_status()
-    return response.json()
+    analyze_res.raise_for_status()
+    check_id = analyze_res.json()["id"]  # e.g. "TEST_CLEAN"
+
+    # Step 2: Retrieve the full result
+    result_res = requests.get(
+        f"{BASE_URL}/result/{check_id}",
+        headers={"Authorization": f"Bearer {TEST_KEY}"},
+    )
+    result_res.raise_for_status()
+    return result_res.json()
 
 # Test intact document
-result = analyze_test_document("clean.pdf")
-assert result["analysis"]["status"] == "intact"
-assert result["analysis"]["been_changed"] is False
+result = analyze_and_get_result("clean.pdf")
+assert result["status"] == "intact"
 
 # Test critical tampering
-result = analyze_test_document("both-threats.pdf")
-assert result["analysis"]["status"] == "modified"
-assert result["analysis"]["been_changed"] is True
-assert result["analysis"]["threats"]["has_javascript"] is True
+result = analyze_and_get_result("both-threats.pdf")
+assert result["status"] == "modified"
+assert result["has_javascript"] is True
 
 # Test inconclusive (consumer software)
-result = analyze_test_document("inconclusive.pdf")
-assert result["analysis"]["status"] == "inconclusive"
-assert result["analysis"]["status_reason"] == "consumer_software_origin"
-assert result["analysis"]["origin"]["software"] == "Microsoft Excel"
+result = analyze_and_get_result("inconclusive.pdf")
+assert result["status"] == "inconclusive"
+assert result["status_reason"] == "consumer_software_origin"
+assert result["origin"]["software"] == "Microsoft Excel"
 ```
 
 ---
@@ -464,11 +499,15 @@ assert result["analysis"]["origin"]["software"] == "Microsoft Excel"
 
 ---
 
-### Trying to retrieve a test result via `/result/{id}`
+### Passing a `TEST_*` ID with a live key
 
-Test responses are not saved to the database. The `id` in the response is ephemeral — calling `GET /api/v1/result/{id}` with it will return 404.
+Synthetic check IDs (`TEST_*`) are only accessible with a test key. Calling `GET /api/v1/result/TEST_CLEAN` with a live key returns 404:
 
-**Fix:** Use your live key for workflows that require result retrieval. Test keys are only for validating your request/response handling.
+```json
+{ "error": "Check not found or access denied" }
+```
+
+**Fix:** Use your test key when retrieving synthetic test results. Keep test and live keys in separate environments.
 
 ---
 
@@ -485,42 +524,14 @@ Live keys download and analyze the URL as a real file. Passing `https://htpbe.te
 The `verdict_reasoning` field is `undefined` (omitted) when no single dominant reason was identified. Several test fixtures omit it:
 
 ```bash
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}' \
   | jq 'has("verdict_reasoning")'
 ```
 
-**Fix:** Always use optional chaining or null checks: `result.analysis.verdict_reasoning ?? ""`.
+**Fix:** Always use optional chaining or null checks: `result.verdict_reasoning ?? ""`.
 
 ---
-
-### Using `been_changed` as the primary verdict field
-
-`been_changed` is auxiliary and kept for backward compatibility. For `inconclusive` results, `been_changed` is `false` — the same as an intact document. Use `status` to distinguish these cases:
-
-```typescript
-// Wrong — misses inconclusive
-if (result.analysis.been_changed) {
-  showModifiedAlert();
-} else {
-  showOriginalBadge(); // incorrectly shown for consumer-software PDFs
-}
-
-// Correct
-switch (result.analysis.status) {
-  case 'intact':
-    showOriginalBadge();
-    break;
-  case 'modified':
-    showModifiedAlert();
-    break;
-  case 'inconclusive':
-    showCannotVerifyBanner(result.analysis.origin.warning);
-    break;
-}
-```
 
 ---
 
@@ -531,11 +542,11 @@ Use this list before switching from test to live keys:
 - [ ] Application handles `status: "intact"` (original document)
 - [ ] Application handles `status: "modified"` at low, medium, and high risk
 - [ ] Application handles `status: "inconclusive"` with `origin.warning` displayed to the user
-- [ ] UI displays `findings` array items clearly
-- [ ] Code handles `null` values in `metadata.creation_date` and `metadata.modification_date`
+- [ ] UI displays `specific_findings` array items clearly
+- [ ] Code handles `null` values in `creation_date` and `modification_date`
 - [ ] Code handles missing `verdict_reasoning` field
-- [ ] `signatures.signature_removed: true` triggers a visible alert
-- [ ] `threats.has_javascript: true` triggers a visible warning
+- [ ] `signature_removed: true` triggers a visible alert
+- [ ] `has_javascript: true` triggers a visible warning
 - [ ] 403 errors are surfaced to the user (not silently swallowed)
 - [ ] API key is stored in environment variables, not hardcoded
 
@@ -543,7 +554,9 @@ Use this list before switching from test to live keys:
 
 ## Full Response Reference
 
-Every test URL returns a deterministic `analysis` object. The `id` field is always a fresh UUID generated per request and is not saved to the database.
+Every test URL returns a deterministic result accessible via `GET /api/v1/result/{id}`. Results are not saved to the database — synthetic results are generated on the fly and are accessible at any time with a test key.
+
+The field values below show what each fixture returns. Fields are grouped by category for readability; in the actual `GET /result/{id}` response, all fields are at the top level — see [GET /result](./api/result.md) for the complete flat schema. Date fields (`creation_date`, `modification_date`) are Unix timestamps (seconds since epoch).
 
 ---
 
@@ -556,7 +569,7 @@ Original document, no modifications.
 ```json
 {
   "status": "intact",
-  "been_changed": false,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
@@ -578,7 +591,7 @@ Original document, no modifications.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": []
+  "specific_findings": []
 }
 ```
 
@@ -593,7 +606,7 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 ```json
 {
   "status": "intact",
-  "been_changed": false,
+
   "origin": { "type": "unknown", "software": null, "warning": null },
   "metadata": {
     "creation_date": null,
@@ -615,7 +628,7 @@ Original document, metadata dates absent (common in auto-generated PDFs).
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": []
+  "specific_findings": []
 }
 ```
 
@@ -631,7 +644,7 @@ LibreOffice origin — integrity check not applicable.
 {
   "status": "inconclusive",
   "status_reason": "consumer_software_origin",
-  "been_changed": false,
+
   "origin": {
     "type": "consumer_software",
     "software": "LibreOffice",
@@ -657,7 +670,7 @@ LibreOffice origin — integrity check not applicable.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": []
+  "specific_findings": []
 }
 ```
 
@@ -673,7 +686,7 @@ Microsoft Excel origin — integrity check not applicable.
 {
   "status": "inconclusive",
   "status_reason": "consumer_software_origin",
-  "been_changed": false,
+
   "origin": {
     "type": "consumer_software",
     "software": "Microsoft Excel",
@@ -699,7 +712,7 @@ Microsoft Excel origin — integrity check not applicable.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": []
+  "specific_findings": []
 }
 ```
 
@@ -714,7 +727,7 @@ Digitally signed, no post-sign modifications.
 ```json
 {
   "status": "intact",
-  "been_changed": false,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-05T10:00:00.000Z",
@@ -736,7 +749,7 @@ Digitally signed, no post-sign modifications.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": ["Document digitally signed", "No modifications after signature"]
+  "specific_findings": ["Document digitally signed", "No modifications after signature"]
 }
 ```
 
@@ -751,7 +764,7 @@ Modification date 14 days after creation date.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-01T10:00:00.000Z",
@@ -773,7 +786,7 @@ Modification date 14 days after creation date.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": ["Modification date 14 days after creation date"]
+  "specific_findings": ["Modification date 14 days after creation date"]
 }
 ```
 
@@ -788,7 +801,7 @@ Minor modification — one incremental update.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
@@ -810,7 +823,10 @@ Minor modification — one incremental update.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": ["Incremental update detected", "Modification date differs from creation date"]
+  "specific_findings": [
+    "Incremental update detected",
+    "Modification date differs from creation date"
+  ]
 }
 ```
 
@@ -825,7 +841,7 @@ Moderate modification — creator/producer mismatch.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": {
     "type": "consumer_software",
     "software": "Microsoft Word",
@@ -851,7 +867,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": [
+  "specific_findings": [
     "Multiple incremental updates detected",
     "Creator/Producer mismatch",
     "Significant time gap between creation and modification"
@@ -870,7 +886,7 @@ Moderate modification — creator/producer mismatch.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-10T11:00:00.000Z",
@@ -892,7 +908,10 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": ["Multiple xref tables detected (4 total)", "Incremental update chain present"]
+  "specific_findings": [
+    "Multiple xref tables detected (4 total)",
+    "Incremental update chain present"
+  ]
 }
 ```
 
@@ -907,7 +926,7 @@ Moderate modification — creator/producer mismatch.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-20T09:00:00.000Z",
@@ -929,7 +948,10 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": ["Multiple incremental updates (6 chain length)", "Complex modification history"]
+  "specific_findings": [
+    "Multiple incremental updates (6 chain length)",
+    "Complex modification history"
+  ]
 }
 ```
 
@@ -944,7 +966,7 @@ Embedded file attachments added after creation.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-12T14:00:00.000Z",
@@ -966,7 +988,7 @@ Embedded file attachments added after creation.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": true },
-  "findings": ["Embedded files detected", "Files added after creation"]
+  "specific_findings": ["Embedded files detected", "Files added after creation"]
 }
 ```
 
@@ -981,7 +1003,7 @@ JavaScript code embedded in the PDF.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-03-10T10:00:00.000Z",
@@ -1003,7 +1025,7 @@ JavaScript code embedded in the PDF.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "findings": ["JavaScript code detected in PDF", "Potential security risk"]
+  "specific_findings": ["JavaScript code detected in PDF", "Potential security risk"]
 }
 ```
 
@@ -1018,7 +1040,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-01T00:00:00.000Z",
@@ -1040,7 +1062,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": [
+  "specific_findings": [
     "Extensive modification history",
     "Producer changed from Adobe to PDFtk",
     "Suspicious tool pattern detected",
@@ -1060,7 +1082,7 @@ Modified after digital signing — signature is now invalidated.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-01T09:00:00.000Z",
@@ -1082,7 +1104,7 @@ Modified after digital signing — signature is now invalidated.
     "modifications_after_signature": true
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": [
+  "specific_findings": [
     "Document modified after being digitally signed",
     "Signature may be invalid",
     "Content changed post-signature"
@@ -1101,7 +1123,7 @@ Digital signature was removed from the document.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-01-10T10:00:00.000Z",
@@ -1123,7 +1145,7 @@ Digital signature was removed from the document.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "findings": ["CRITICAL: Digital signature was removed", "Document integrity compromised"]
+  "specific_findings": ["CRITICAL: Digital signature was removed", "Document integrity compromised"]
 }
 ```
 
@@ -1138,7 +1160,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": {
     "type": "consumer_software",
     "software": "Microsoft Excel",
@@ -1164,7 +1186,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "findings": [
+  "specific_findings": [
     "Critical: Digital signature removed",
     "JavaScript code detected",
     "Extensive modification chain (8 updates)",
@@ -1186,7 +1208,7 @@ JavaScript + embedded files + signature removed. Maximum severity.
 ```json
 {
   "status": "modified",
-  "been_changed": true,
+
   "origin": { "type": "institutional", "software": null, "warning": null },
   "metadata": {
     "creation_date": "2024-02-15T10:00:00.000Z",
@@ -1208,7 +1230,7 @@ JavaScript + embedded files + signature removed. Maximum severity.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": true },
-  "findings": [
+  "specific_findings": [
     "CRITICAL: JavaScript AND embedded files detected",
     "Digital signature removed",
     "Suspicious editing tool",
@@ -1223,5 +1245,5 @@ JavaScript + embedded files + signature removed. Maximum severity.
 ## Related
 
 - [POST /api/v1/analyze](./api/analyze.md) — Full request/response reference
-- [GET /api/v1/result/{uid}](./api/result.md) — Retrieve saved results (live key only)
+- [GET /api/v1/result/{uid}](./api/result.md) — Retrieve analysis results (live key and test key)
 - [GET /api/v1/checks](./api/checks.md) — List all checks with filtering

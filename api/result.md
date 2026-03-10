@@ -1,11 +1,11 @@
-# GET /api/v1/result/{uid}
+# GET /api/v1/result/{id}
 
 Retrieve a previously completed PDF analysis by its unique check ID.
 
 ## Endpoint
 
 ```
-GET https://htpbe.tech/api/v1/result/{uid}
+GET https://htpbe.tech/api/v1/result/{id}
 ```
 
 ## Authentication
@@ -26,25 +26,28 @@ Authorization: Bearer YOUR_API_KEY
 
 ### Path Parameters
 
-| Parameter | Type   | Required | Description                                                                                                                                                |
-| --------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `uid`     | string | **Yes**  | UUID v4 identifier of the check to retrieve. This is the `id` returned from the `/api/v1/analyze` endpoint. Format: `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx` |
+| Parameter | Type   | Required | Description                                                                                                        |
+| --------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `id`      | string | **Yes**  | Check ID returned from `POST /api/v1/analyze`. UUID v4 for live requests; `TEST_*` synthetic ID for test requests. |
 
-#### uid Parameter Details
+#### id Parameter Details
 
-**Format:** Must be a valid UUID v4 string
+**Live key format:** UUID v4 — `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx`
 
-**Valid Example:**
+**Test key format:** Deterministic synthetic ID — `TEST_CLEAN`, `TEST_MODIFIED_HIGH`, etc.
 
-- `506a6b1b-1360-48a2-b389-abb346f85d04`
+**Valid Examples:**
+
+- `506a6b1b-1360-48a2-b389-abb346f85d04` (live key request)
+- `TEST_CLEAN` (test key request)
 
 **Invalid Examples:**
 
-- `abc123` (not a UUID)
-- `506a6b1b` (incomplete UUID)
+- `abc123` (too short, not a UUID)
+- `506a6b1b` (incomplete UUID — this is the short display `uid` from `/checks`, not usable here)
 - `` (empty string)
 
-**Where to Get:** The `uid` is returned as the `id` field in the response from `POST /api/v1/analyze`.
+**Where to Get:** The `id` field returned by `POST /api/v1/analyze`.
 
 ### Headers
 
@@ -97,12 +100,7 @@ result = response.json()
 
 Returns a `ResultResponse` object containing all stored analysis data for the check.
 
-**Note:** This endpoint returns **more detailed information** than the `/api/v1/analyze` endpoint, including:
-
-- Unix timestamps instead of ISO 8601 strings
-- Additional metadata fields (metadata completeness, suspicious patterns)
-- Content analysis (page count, object count)
-- Detection methods used
+**Note:** `/api/v1/analyze` returns only `{ "id": "..." }`. This endpoint is where all analysis data lives: metadata, structure, signatures, findings, and verdict details.
 
 #### Response Structure
 
@@ -110,7 +108,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 {
   // Core Identification
   id: string;
-  user_id: string;
   original_filename: string;
   check_date: number;
   file_size: number;
@@ -128,9 +125,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
     software: string | null;
     warning: string | null;
   };
-
-  // Analysis Results
-  been_changed: boolean;  // auxiliary — prefer status
 
   // PDF Metadata (Unix timestamps)
   creation_date: number | null;
@@ -182,14 +176,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Description:** Unique identifier for this check (same as the `uid` parameter)
 - **Format:** `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx`
 - **Example:** `"506a6b1b-1360-48a2-b389-abb346f85d04"`
-
-##### `user_id`
-
-- **Type:** `string` (UUID v4)
-- **Always Present:** Yes
-- **Description:** UUID of the user account that owns this check
-- **Usage:** For internal tracking. All checks with the same `user_id` belong to the same account.
-- **Example:** `"be0543d7-08dd-4d4e-867e-2ad5c2c43dc0"`
 
 ##### `original_filename`
 
@@ -264,16 +250,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Description:** **PRIMARY VERDICT** — see [Understanding the verdict](./analyze.md#understanding-the-verdict) for details
 - See `POST /api/v1/analyze` documentation for full description of `status`, `status_reason`, and `origin` fields.
 
-##### `been_changed`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Description:** **AUXILIARY** — kept for backward compatibility; use `status` for new integrations
-- **Description:** Whether the PDF has been modified (same as in analyze response)
-- **Possible Values:**
-  - `true` - Modified
-  - `false` - Original
-
 ---
 
 #### PDF Metadata Fields (Unix Timestamps)
@@ -322,26 +298,29 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 - **Type:** `string | null`
 - **Can Be Null:** Yes
-- **Description:** Specific critical modification detected with 100% confidence
+- **Description:** The specific forensic indicator that triggered the modification verdict
 - **Null When:** No critical modification markers found
 - **Possible Values:**
-  - `null` - No critical markers
-  - `"Different creation and modification dates"` - Dates don't match (strong evidence)
-  - `"Multiple cross-reference tables (incremental updates)"` - Structure shows multiple saves
-  - `"Modifications detected after digital signature"` - File modified after signing
-  - `"Digital signature was removed"` - Signature deletion detected (critical tampering)
-- **Usage:** If not null, this is **definitive evidence** of modification
-- **Impact:** When set, `modification_confidence` will be `"100%"`
+  - `null` - No critical markers detected
+  - `"Different creation and modification dates"` — dates don't match; confidence: `certain`
+  - `"Modifications detected after digital signature"` — file modified after signing; confidence: `certain`
+  - `"Digital signature was removed"` — signature deletion detected; confidence: `certain`
+  - `"Multiple cross-reference tables (incremental updates)"` — structure shows multiple saves; confidence: `high`
+  - `"Known PDF editing tool detected"` — Producer/Creator identifies a PDF editing tool; confidence: `high`
+  - `"Mandatory metadata fields removed"` — creation date or producer/creator absent; confidence: `high`
+  - `"Font structure inconsistent with claimed PDF generator"` — claimed tool always embeds fonts, but none found; confidence: `high`
+- **Usage:** If not null, this is **definitive evidence** of modification — treat the document as modified regardless of other fields
 
 ##### `modification_confidence`
 
 - **Type:** `string | null` (enum)
 - **Can Be Null:** Yes
-- **Description:** Confidence level specifically for critical modifications
+- **Description:** How certain the algorithm is about the modification verdict. Use this to decide what action to take.
 - **Possible Values:**
-  - `"none"` - No critical modification detected
-  - `"high"` - High confidence based on structural indicators but no conclusive proof
-  - `"100%"` - Absolute certainty based on structural evidence (when `critical_modification_marker` is set)
+  - `"certain"` — conclusive structural or cryptographic evidence; **reject the document** — the finding cannot be a false positive (date mismatch, post-signature modification, signature removal)
+  - `"high"` — strong forensic evidence; **flag for manual review** — highly reliable but rare false positives are possible in unusual legitimate workflows (e.g. linearization, batch processing pipelines)
+  - `"none"` — no modification detected; document can be accepted as-is
+- **Relationship to `status`:** `certain` and `high` always correspond to `status: "modified"`. `none` corresponds to `status: "intact"` or `"inconclusive"` depending on origin.
 - **Null When:** Legacy records before this field was added
 
 ##### `verdict_reasoning`
@@ -534,7 +513,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 ```json
 {
   "id": "506a6b1b-1360-48a2-b389-abb346f85d04",
-  "user_id": "be0543d7-08dd-4d4e-867e-2ad5c2c43dc0",
   "original_filename": "contract.pdf",
   "check_date": 1736542583,
   "file_size": 245632,
@@ -546,13 +524,12 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
     "software": null,
     "warning": null
   },
-  "been_changed": true,
   "creation_date": 1704110400,
   "modification_date": 1707840000,
   "creator": "Microsoft Word for Microsoft 365",
   "producer": "Adobe PDF Library 15.0",
   "critical_modification_marker": "Digital signature was removed",
-  "modification_confidence": "100%",
+  "modification_confidence": "certain",
   "verdict_reasoning": "Digital signature was removed from the document",
   "date_sequence_valid": true,
   "metadata_completeness_score": 90,
@@ -721,7 +698,12 @@ Use the additional fields for comprehensive reports:
 const result = await getResult(checkId);
 
 const report = {
-  summary: result.been_changed ? 'Modified' : 'Original',
+  summary:
+    result.status === 'modified'
+      ? 'Modified'
+      : result.status === 'inconclusive'
+        ? 'Unverifiable'
+        : 'Original',
 
   // Use fields not available in analyze endpoint
   details: {

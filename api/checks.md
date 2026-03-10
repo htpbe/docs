@@ -76,9 +76,9 @@ Authorization: Bearer YOUR_API_KEY
 
 **`modified`**
 
-- `true` = only modified PDFs (`been_changed = true`)
-- `false` = only original PDFs (`been_changed = false`)
-- Omit parameter to get both
+- `true` = only checks where modification was detected (`status: "modified"` or `"inconclusive"`)
+- `false` = only clean checks (`status: "intact"`)
+- Omit parameter to get all
 
 **`from_date`** / **`to_date`**
 
@@ -288,8 +288,8 @@ Each item in the `checks` array has the following structure:
   filename: string;
   check_date: number;
 
-  // Modification Detection
-  been_changed: boolean;
+  // Verdict
+  status: 'intact' | 'modified' | 'inconclusive';
   metadata_score: number;
 
   // Tools
@@ -352,17 +352,18 @@ Each item in the `checks` array has the following structure:
 
 ---
 
-#### Modification Detection Fields
+#### Verdict Fields
 
-##### `been_changed`
+##### `status`
 
-- **Type:** `boolean`
+- **Type:** `"intact" | "modified" | "inconclusive"`
 - **Always Present:** Yes
-- **Description:** Whether the PDF was detected as modified
+- **Description:** Verdict for this check
 - **Values:**
-  - `true` = PDF has been modified after original creation
-  - `false` = PDF appears to be original/unmodified
-- **Algorithm:** Based on metadata analysis, update chains, and suspicious patterns
+  - `"modified"` = forensic evidence of post-creation modification found
+  - `"intact"` = no modification indicators detected; origin appears institutional
+  - `"inconclusive"` = PDF created with consumer software (Word, LibreOffice, etc.); integrity check does not apply
+- **Note:** For full verdict details (`critical_modification_marker`, `verdict_reasoning`, `origin`), retrieve via `GET /api/v1/result/{id}`
 
 ##### `metadata_score`
 
@@ -489,7 +490,7 @@ Each item in the `checks` array has the following structure:
   - `true` = Digitally signed
   - `false` = Not signed
 - **Note:** Signature validity is NOT checked (only presence)
-- **Cross-reference:** If `is_signed=true` AND `been_changed=true` = signature likely invalidated
+- **Cross-reference:** If `is_signed=true` AND `status="modified"` = signature likely invalidated
 
 ##### `has_embedded_files`
 
@@ -568,7 +569,7 @@ Each item in the `checks` array has the following structure:
       "uid": "a3f5c9d2",
       "filename": "invoice-2024-01.pdf",
       "check_date": 1738368000,
-      "been_changed": true,
+      "status": "modified",
       "metadata_score": 85,
       "creator": "Microsoft Word for Microsoft 365",
       "producer": "Adobe PDF Library 15.0",
@@ -589,7 +590,7 @@ Each item in the `checks` array has the following structure:
       "uid": "b7e2d8f1",
       "filename": "contract.pdf",
       "check_date": 1738281600,
-      "been_changed": false,
+      "status": "intact",
       "metadata_score": 92,
       "creator": "Adobe Acrobat Pro DC",
       "producer": "Adobe PDF Library 15.0",
@@ -760,10 +761,12 @@ async function calculateToolStats(toolName) {
 
     // As Creator
     totalUsageAsCreator: asCreator.length,
-    modifiedAsCreator: asCreator.filter((c) => c.been_changed).length,
+    modifiedAsCreator: asCreator.filter((c) => c.status === 'modified').length,
     modificationRateAsCreator:
       asCreator.length > 0
-        ? Math.round((asCreator.filter((c) => c.been_changed).length / asCreator.length) * 100)
+        ? Math.round(
+            (asCreator.filter((c) => c.status === 'modified').length / asCreator.length) * 100
+          )
         : 0,
     avgFileSizeAsCreator:
       asCreator.length > 0
@@ -772,10 +775,12 @@ async function calculateToolStats(toolName) {
 
     // As Producer
     totalUsageAsProducer: asProducer.length,
-    modifiedAsProducer: asProducer.filter((c) => c.been_changed).length,
+    modifiedAsProducer: asProducer.filter((c) => c.status === 'modified').length,
     modificationRateAsProducer:
       asProducer.length > 0
-        ? Math.round((asProducer.filter((c) => c.been_changed).length / asProducer.length) * 100)
+        ? Math.round(
+            (asProducer.filter((c) => c.status === 'modified').length / asProducer.length) * 100
+          )
         : 0,
 
     // Security features
@@ -903,8 +908,8 @@ df['creation_date_dt'] = pd.to_datetime(df['creation_date'], unit='s')
 # Weekly modification trend
 weekly_stats = df.groupby(pd.Grouper(key='check_date_dt', freq='W')).agg({
     'uid': 'count',
-    'been_changed': 'sum'
-}).rename(columns={'uid': 'total_checks', 'been_changed': 'modified_count'})
+    'is_modified': lambda x: (x == 'modified').sum()
+}).rename(columns={'uid': 'total_checks', 'is_modified': 'modified_count'})
 
 weekly_stats['modification_rate'] = (
     weekly_stats['modified_count'] / weekly_stats['total_checks'] * 100
@@ -916,11 +921,11 @@ print(weekly_stats)
 # Top 10 tools by modification rate
 tool_analysis = df.groupby('producer').agg({
     'uid': 'count',
-    'been_changed': 'sum'
+    'is_modified': lambda x: (x == 'modified').sum()
 }).rename(columns={'uid': 'count'})
 
 tool_analysis['mod_rate'] = (
-    tool_analysis['been_changed'] / tool_analysis['count'] * 100
+    tool_analysis['is_modified'] / tool_analysis['count'] * 100
 ).round(1)
 
 tool_analysis = tool_analysis[tool_analysis['count'] >= 10]  # Min 10 samples
@@ -949,7 +954,7 @@ async function securityMonitoring() {
   const alerts = [];
 
   // Alert 1: Signed documents that were modified
-  const signedButModified = modifiedChecks.filter((c) => c.is_signed && c.been_changed);
+  const signedButModified = modifiedChecks.filter((c) => c.is_signed && c.status === 'modified');
   if (signedButModified.length > 0) {
     alerts.push({
       severity: 'CRITICAL',
@@ -1052,7 +1057,7 @@ setInterval(securityMonitoring, 60 * 60 * 1000);
 
 **If you need a single check:**
 
-- Use `GET /api/v1/result/{uid}` for full details of one check
+- Use `GET /api/v1/result/{id}` for full details of one check (requires the full UUID from `/analyze`, not the short `uid` from this endpoint)
 - Only use `/checks` when you need multiple checks
 
 ---

@@ -135,7 +135,7 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Type:** `number` (integer)
 - **Always Present:** Yes
 - **Range:** `0` to `totalChecks`
-- **Description:** Number of PDFs that were detected as modified (`been_changed = true`)
+- **Description:** Number of PDFs that were detected as modified (`status: "modified"`)
 - **Example:** `487` out of 1250 checks
 - **Calculate Percentage:** `(editedFiles / totalChecks) * 100` = modification rate
 - **Insight:** If this percentage is high (>40%), many of your documents are being modified

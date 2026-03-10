@@ -55,7 +55,7 @@ Your application
 │  └──────────────────────────┘   │
 └─────────────────────────────────┘
        │
-       │  { id, been_changed, status, findings, ... }
+       │  { id, status, specific_findings, ... }
        ▼
 Your application
 ```

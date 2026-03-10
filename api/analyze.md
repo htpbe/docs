@@ -108,54 +108,17 @@ result = response.json()
 
 ### Success Response (200 OK)
 
-Returns an `AnalysisResponse` object containing the analysis results.
+Analysis is performed synchronously. The response contains only the check ID — call `GET /api/v1/result/{id}` immediately after to retrieve the full analysis results.
 
 #### Response Structure
 
 ```typescript
 {
   id: string;
-  analysis: {
-    status: "intact" | "modified" | "inconclusive";   // PRIMARY verdict
-    status_reason?: "consumer_software_origin";         // only when inconclusive
-    been_changed: boolean;                              // AUXILIARY (backward-compat)
-    verdict_reasoning: string | undefined;
-    origin: {
-      type: "consumer_software" | "institutional" | "unknown";
-      software: string | null;
-      warning: string | null;
-    };
-    metadata: {
-      creation_date: string | null;
-      modification_date: string | null;
-      creator: string | null;
-      producer: string | null;
-      file_size: number;
-    };
-    structure: {
-      has_incremental_updates: boolean;
-      update_chain_length: number;
-      xref_count: number;
-      pdf_version: string | null;
-    };
-    signatures: {
-      has_digital_signature: boolean;
-      signature_count: number;
-      signature_removed: boolean;
-      modifications_after_signature: boolean;
-    };
-    threats: {
-      has_javascript: boolean;
-      has_embedded_files: boolean;
-    };
-    findings: string[];
-  };
 }
 ```
 
 ### Response Fields
-
-#### Top-Level Fields
 
 ##### `id`
 
@@ -163,66 +126,50 @@ Returns an `AnalysisResponse` object containing the analysis results.
 - **Always Present:** Yes
 - **Description:** Unique identifier for this analysis check
 - **Format:** `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx` (UUID version 4)
-- **Usage:** Use this ID to retrieve the full analysis result later via `/api/v1/result/{id}`
+- **Usage:** Pass this ID to `GET /api/v1/result/{id}` to retrieve the full analysis
 - **Example:** `"3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21"`
 
-##### `analysis`
+### Example Response
 
-- **Type:** `object`
-- **Always Present:** Yes
-- **Description:** Container object holding all analysis results
+```json
+{
+  "id": "3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21"
+}
+```
 
----
+### Two-Step Usage Pattern
 
-#### analysis.\* Fields (Core Results)
+```javascript
+// Step 1: Submit PDF for analysis
+const analyzeRes = await fetch('https://htpbe.tech/api/v1/analyze', {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${process.env.HTPBE_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ url: 'https://example.com/documents/contract.pdf' }),
+});
 
-##### `analysis.status`
+const { id } = await analyzeRes.json();
 
-- **Type:** `"intact" | "modified" | "inconclusive"`
-- **Always Present:** Yes
-- **Description:** **PRIMARY VERDICT** — the recommended field to drive your business logic
-- **Possible Values:**
+// Step 2: Retrieve full results
+const resultRes = await fetch(`https://htpbe.tech/api/v1/result/${id}`, {
+  headers: { Authorization: `Bearer ${process.env.HTPBE_API_KEY}` },
+});
 
-  | Value            | Meaning                                                                                          |
-  | ---------------- | ------------------------------------------------------------------------------------------------ |
-  | `"intact"`       | PDF was not modified after creation; origin appears institutional                                |
-  | `"modified"`     | PDF was tampered with after creation (regardless of origin)                                      |
-  | `"inconclusive"` | PDF was not modified, but was created with consumer software — integrity check is not applicable |
+const result = await resultRes.json();
+// result.status: "intact" | "modified" | "inconclusive"
+// result.verdict_reasoning: string | null
+// ... (see /result endpoint docs for full schema)
+```
 
-- **When to use `status` vs `been_changed`:** Always prefer `status`. It is the semantic verdict. `been_changed` is auxiliary and kept only for backward compatibility.
-
-##### `analysis.status_reason`
-
-- **Type:** `"consumer_software_origin" | undefined`
-- **Present Only When:** `status === "inconclusive"`
-- **Description:** Machine-readable reason code explaining why the status is inconclusive
-- **Current Values:**
-  - `"consumer_software_origin"` — PDF was created with consumer/office software (Microsoft Office, LibreOffice, Apple Pages, etc.), making the integrity check meaningless
-
-##### `analysis.origin`
-
-- **Type:** `object`
-- **Always Present:** Yes
-- **Description:** Information about the software that created the PDF
-
-  | Sub-field  | Type                                                  | Description                                                  |
-  | ---------- | ----------------------------------------------------- | ------------------------------------------------------------ |
-  | `type`     | `"consumer_software" \| "institutional" \| "unknown"` | Classification of the creator                                |
-  | `software` | `string \| null`                                      | Normalized name (e.g., `"Microsoft Excel"`, `"LibreOffice"`) |
-  | `warning`  | `string \| null`                                      | Human-readable warning (only for `consumer_software`)        |
-
-- **Consumer software** includes: Microsoft Word, Excel, PowerPoint, LibreOffice, OpenOffice, Apple Pages/Numbers/Keynote, WPS Office, macOS Print to PDF (Quartz)
-- **Institutional** means the creator/producer metadata is present but does not match consumer patterns
+See [GET /api/v1/result/{id}](./result.md) for the full result schema, including verdict fields (`status`, `verdict_reasoning`, `critical_modification_marker`, `modification_confidence`), metadata, structure, signatures, threats, and findings.
 
 ---
 
 ### Understanding the verdict
 
-| `status`         | `been_changed` | Meaning                                                                                      |
-| ---------------- | -------------- | -------------------------------------------------------------------------------------------- |
-| `"intact"`       | `false`        | PDF not modified; origin appears institutional — integrity check is applicable and passed    |
-| `"modified"`     | `true`         | PDF was tampered after creation — regardless of origin                                       |
-| `"inconclusive"` | `false`        | PDF not modified, but created with consumer software — integrity check is **not applicable** |
+The verdict fields (`status`, `verdict_reasoning`, `critical_modification_marker`) are available in the result endpoint. See [GET /api/v1/result/{id}](./result.md) for details.
 
 **How `status: "modified"` is determined:**
 
@@ -232,8 +179,6 @@ The verdict is set to `"modified"` when any of the following critical markers ar
 2. Modifications found after digital signature was applied
 3. Digital signature was removed
 4. Creation and modification dates differ
-
-The verdict comes solely from these critical markers. Use `status` as the authoritative verdict.
 
 **What we detect:**
 
@@ -248,440 +193,6 @@ The verdict comes solely from these critical markers. Use `status` as the author
 - Visual/content differences without structural changes
 - Password-protected content
 - Cryptographic signature validity
-
----
-
-##### `analysis.been_changed`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Description:** **AUXILIARY FIELD** — kept for backward compatibility. Use `analysis.status` for new integrations.
-- **Possible Values:**
-  - `true` - PDF has been modified after initial creation
-  - `false` - PDF appears to be in its original state (but may be `inconclusive` if consumer software origin)
-- **Relationship to `status`:** `been_changed = true` always means `status = "modified"`. `been_changed = false` means either `"intact"` or `"inconclusive"` depending on origin.
-- **Detection Methods:**
-  - Different creation and modification dates in metadata
-  - Presence of incremental update sections in PDF structure
-  - Removed or invalidated digital signatures
-  - Multiple cross-reference tables indicating multiple saves
-  - Suspicious metadata patterns
-
-##### `analysis.verdict_reasoning`
-
-- **Type:** `string | undefined`
-- **Can Be Undefined:** Yes
-- **Description:** Human-readable explanation of the primary reason behind the modification verdict
-- **Present When:** The analysis engine identified a specific dominant reason for the verdict (e.g., known editing tool detected, signature removed)
-- **Undefined When:** No single dominant reason identified; verdict is based on aggregate scoring
-- **Example Values:**
-  - `"Known PDF editing tool detected (iLovePDF)"`
-  - `"Digital signature was removed from the document"`
-  - `"Document was modified after digital signing"`
-- **Usage:** Display to end users as a concise one-line verdict explanation
-
-##### `analysis.findings`
-
-- **Type:** `string[]` (array of strings)
-- **Always Present:** Yes
-- **Description:** Human-readable list of specific issues and anomalies detected
-- **Empty When:** No modifications or issues detected
-- **Example Values:**
-  - `"Document modified 36 days after creation"`
-  - `"Digital signature removed (critical tampering)"`
-  - `"Three incremental updates detected"`
-  - `"Different creation and modification dates"`
-  - `"Metadata indicates file was edited with Adobe Acrobat"`
-  - `"Creation date missing from PDF metadata"`
-  - `"Suspicious creator/producer combination"`
-- **Usage:** Display these to end users for detailed explanation
-
----
-
-#### analysis.metadata.\* Fields (PDF Metadata)
-
-##### `analysis.metadata.creation_date`
-
-- **Type:** `string | null` (ISO 8601 timestamp)
-- **Can Be Null:** Yes
-- **Format:** `YYYY-MM-DDTHH:mm:ss.sssZ` (ISO 8601 UTC)
-- **Description:** Timestamp when the PDF was originally created according to embedded metadata
-- **Null When:** PDF metadata does not contain a creation date (common in automatically generated PDFs)
-- **Examples:**
-  - `"2024-01-15T10:30:00.000Z"` (January 15, 2024 at 10:30 AM UTC)
-  - `"2023-12-01T00:00:00.000Z"` (December 1, 2023 at midnight UTC)
-  - `null` (no creation date in metadata)
-- **Modification Indicator:** If different from `modification_date`, indicates the file was modified
-
-##### `analysis.metadata.modification_date`
-
-- **Type:** `string | null` (ISO 8601 timestamp)
-- **Can Be Null:** Yes
-- **Format:** `YYYY-MM-DDTHH:mm:ss.sssZ` (ISO 8601 UTC)
-- **Description:** Timestamp of the last modification according to embedded metadata
-- **Null When:** PDF metadata does not contain a modification date
-- **Critical Indicator:** If different from `creation_date`, this is strong evidence of modification
-- **Examples:**
-  - `"2024-02-20T14:45:00.000Z"` (Modified after creation)
-  - Same as `creation_date` (Original, never modified)
-  - `null` (no modification date)
-
-##### `analysis.metadata.creator`
-
-- **Type:** `string | null`
-- **Can Be Null:** Yes
-- **Description:** Name of the application that created the original document (before PDF conversion)
-- **Null When:** PDF metadata does not specify a creator
-- **Common Values:**
-  - `"Microsoft Word for Microsoft 365"`
-  - `"Adobe InDesign CC 2024"`
-  - `"LibreOffice Writer 7.0"`
-  - `"Google Docs"`
-  - `"Apple Pages"`
-  - `"LaTeX with hyperref"`
-- **Forgery Detection:** Inconsistent creator/producer combinations may indicate tampering
-
-##### `analysis.metadata.producer`
-
-- **Type:** `string | null`
-- **Can Be Null:** Yes
-- **Description:** Name of the software that generated the final PDF file
-- **Null When:** PDF metadata does not specify a producer
-- **Common Values:**
-  - `"Adobe PDF Library 15.0"`
-  - `"PDFKit"`
-  - `"iText 7.0.0"`
-  - `"Microsoft: Print To PDF"`
-  - `"wkhtmltopdf 0.12.6"`
-  - `"Skia/PDF m116"`
-- **Most Common:** Usually indicates the PDF library or conversion tool used
-- **Modification Indicator:** If producer suggests editing software (e.g., "Adobe Acrobat Pro DC"), file was likely edited
-
-##### `analysis.metadata.file_size`
-
-- **Type:** `number` (integer, bytes)
-- **Always Present:** Yes
-- **Range:** `1` to `10485760` (10 MB limit)
-- **Description:** Total file size in bytes
-- **Example:** `1048576` = 1 MB
-- **Usage:** Useful for tracking storage or detecting unusual file sizes for page count
-
----
-
-#### analysis.structure.\* Fields (PDF Structure)
-
-##### `analysis.structure.has_incremental_updates`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Possible Values:**
-  - `true` - PDF contains incremental update sections (indicates modification)
-  - `false` - PDF has simple linear structure (likely original)
-- **Description:** Whether the PDF file structure contains incremental updates
-- **What It Means:**
-  - PDFs with incremental updates have been saved multiple times, appending changes rather than rewriting the entire file
-  - This is the most reliable structural indicator of modification
-  - **Not always malicious:** Many legitimate workflows involve incremental saves (e.g., adding signatures)
-
-##### `analysis.structure.update_chain_length`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` and higher
-- **Description:** Number of update sections in the PDF structure
-- **Interpretation:**
-  - `0` - No updates (shouldn't occur)
-  - `1` - Original file, no modifications
-  - `2` - File was saved/modified once after creation
-  - `3` - File was saved/modified twice
-  - `4+` - File has undergone multiple edit sessions
-- **Example:** A PDF created, then signed, then edited again would have `update_chain_length: 3`
-
-##### `analysis.structure.xref_count`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `1` and higher
-- **Description:** Number of cross-reference tables in the PDF
-- **Typical Values:**
-  - `1` - Single xref table (original file)
-  - `2+` - Multiple xref tables (modified file)
-- **Technical Detail:** Each save operation typically creates a new xref table
-- **Relationship:** Usually equals `update_chain_length` but can differ in complex PDFs
-
-##### `analysis.structure.pdf_version`
-
-- **Type:** `string | null`
-- **Can Be Null:** Yes
-- **Description:** PDF specification version
-- **Null When:** Version cannot be determined from file header
-- **Common Values:**
-  - `"1.3"` - PDF 1.3 (Acrobat 4.x)
-  - `"1.4"` - PDF 1.4 (Acrobat 5.x) - supports transparency
-  - `"1.5"` - PDF 1.5 (Acrobat 6.x) - supports layers
-  - `"1.6"` - PDF 1.6 (Acrobat 7.x)
-  - `"1.7"` - PDF 1.7 (Acrobat 8.x and later) - **most common**
-  - `"2.0"` - PDF 2.0 (ISO 32000-2:2017) - modern standard
-- **Note:** Higher versions support more features but are less compatible with older readers
-
----
-
-#### analysis.signatures.\* Fields (Digital Signatures)
-
-##### `analysis.signatures.has_digital_signature`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Possible Values:**
-  - `true` - PDF contains one or more digital signatures
-  - `false` - PDF is unsigned
-- **Description:** Whether the PDF has been digitally signed
-- **Important:** This only detects if signatures are **currently present**, not if they existed previously
-
-##### `analysis.signatures.signature_count`
-
-- **Type:** `number` (integer)
-- **Always Present:** Yes
-- **Range:** `0` and higher
-- **Description:** Number of digital signature fields in the PDF
-- **Common Values:**
-  - `0` - No signatures
-  - `1` - Single signature (most common)
-  - `2+` - Multiple signatures (e.g., multi-party contracts)
-- **Note:** Each signer typically adds one signature
-
-##### `analysis.signatures.signature_removed`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Possible Values:**
-  - `true` - **CRITICAL** - Evidence that a signature was removed
-  - `false` - No evidence of removed signatures
-- **Description:** Whether a digital signature was removed from the PDF
-- **Detection Method:** Analyzes PDF structure for orphaned signature references or signature field remnants
-- **Severity:** This is a **critical tampering indicator** - removing a signature usually means someone wanted to hide authentication
-
-##### `analysis.signatures.modifications_after_signature`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Possible Values:**
-  - `true` - **CRITICAL** - PDF was modified after being signed
-  - `false` - No modifications after signing, or no signatures present
-- **Description:** Whether the document was modified after a digital signature was applied
-- **What It Means:**
-  - Digital signatures mathematically bind to the document content
-  - Any modification after signing invalidates the signature
-  - This indicates the signature can no longer be trusted
-- **Common Causes:**
-  - Adding text, images, or annotations after signing
-  - Form field modifications
-  - Metadata changes
-  - Malicious tampering
-
----
-
-#### analysis.threats.\* Fields (Security Threats)
-
-##### `analysis.threats.has_javascript`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Possible Values:**
-  - `true` - PDF contains JavaScript code
-  - `false` - No JavaScript detected
-- **Description:** Whether the PDF document contains embedded JavaScript
-- **Security Concern:** JavaScript in PDFs can be used for:
-  - **Legitimate:** Form validation, calculations, interactive features
-  - **Malicious:** Exploits, data exfiltration, malware delivery
-- **Recommendation:** PDFs with JavaScript should be treated with caution, especially from untrusted sources
-
-##### `analysis.threats.has_embedded_files`
-
-- **Type:** `boolean`
-- **Always Present:** Yes
-- **Possible Values:**
-  - `true` - PDF has embedded/attached files
-  - `false` - No embedded files
-- **Description:** Whether the PDF contains embedded file attachments
-- **Security Concern:** Embedded files can:
-  - **Legitimate:** Portfolio PDFs, supporting documents
-  - **Malicious:** Hide malware, ransomware, or exploits
-- **Common Formats:** Can embed any file type (EXE, ZIP, PDF, Office docs, etc.)
-
----
-
-### Example Responses
-
-#### Example 1: Modified Document (High Risk)
-
-```json
-{
-  "id": "3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21",
-  "analysis": {
-    "status": "modified",
-    "been_changed": true,
-    "verdict_reasoning": "Digital signature was removed from the document",
-    "origin": {
-      "type": "institutional",
-      "software": null,
-      "warning": null
-    },
-    "metadata": {
-      "creation_date": "2024-01-15T10:30:00.000Z",
-      "modification_date": "2024-02-20T14:45:00.000Z",
-      "creator": "Adobe Acrobat Pro DC",
-      "producer": "Microsoft Word for Microsoft 365",
-      "file_size": 1048576
-    },
-    "structure": {
-      "has_incremental_updates": true,
-      "update_chain_length": 3,
-      "xref_count": 2,
-      "pdf_version": "1.7"
-    },
-    "signatures": {
-      "has_digital_signature": false,
-      "signature_count": 0,
-      "signature_removed": true,
-      "modifications_after_signature": false
-    },
-    "threats": {
-      "has_javascript": false,
-      "has_embedded_files": false
-    },
-    "findings": [
-      "Document modified after creation",
-      "Digital signature removed",
-      "Multiple update chains detected"
-    ]
-  }
-}
-```
-
-#### Example 2: Original Document (Intact)
-
-```json
-{
-  "id": "7d8e9f2a-4c5b-6d7e-8f9a-0b1c2d3e4f5a",
-  "analysis": {
-    "status": "intact",
-    "been_changed": false,
-    "origin": {
-      "type": "institutional",
-      "software": null,
-      "warning": null
-    },
-    "metadata": {
-      "creation_date": "2024-03-10T08:15:00.000Z",
-      "modification_date": "2024-03-10T08:15:00.000Z",
-      "creator": "Adobe Acrobat Pro DC",
-      "producer": "Adobe PDF Library 15.0",
-      "file_size": 245632
-    },
-    "structure": {
-      "has_incremental_updates": false,
-      "update_chain_length": 1,
-      "xref_count": 1,
-      "pdf_version": "1.7"
-    },
-    "signatures": {
-      "has_digital_signature": false,
-      "signature_count": 0,
-      "signature_removed": false,
-      "modifications_after_signature": false
-    },
-    "threats": {
-      "has_javascript": false,
-      "has_embedded_files": false
-    },
-    "findings": []
-  }
-}
-```
-
-#### Example 3: Inconclusive (Consumer Software Origin)
-
-```json
-{
-  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "analysis": {
-    "status": "inconclusive",
-    "status_reason": "consumer_software_origin",
-    "been_changed": false,
-    "origin": {
-      "type": "consumer_software",
-      "software": "Microsoft Excel",
-      "warning": "This document was created with consumer software (Microsoft Excel). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
-    },
-    "metadata": {
-      "creation_date": "2024-03-01T09:00:00.000Z",
-      "modification_date": "2024-03-01T09:00:00.000Z",
-      "creator": "Microsoft Excel 2019",
-      "producer": "Microsoft: Print To PDF",
-      "file_size": 204800
-    },
-    "structure": {
-      "has_incremental_updates": false,
-      "update_chain_length": 1,
-      "xref_count": 1,
-      "pdf_version": "1.7"
-    },
-    "signatures": {
-      "has_digital_signature": false,
-      "signature_count": 0,
-      "signature_removed": false,
-      "modifications_after_signature": false
-    },
-    "threats": {
-      "has_javascript": false,
-      "has_embedded_files": false
-    },
-    "findings": []
-  }
-}
-```
-
-#### Example 4: Minimal Metadata (Medium Confidence)
-
-```json
-{
-  "id": "506a6b1b-1360-48a2-b389-abb346f85d04",
-  "analysis": {
-    "status": "modified",
-    "been_changed": true,
-    "origin": {
-      "type": "unknown",
-      "software": null,
-      "warning": null
-    },
-    "metadata": {
-      "creation_date": null,
-      "modification_date": null,
-      "creator": null,
-      "producer": "PDFKit",
-      "file_size": 523145
-    },
-    "structure": {
-      "has_incremental_updates": true,
-      "update_chain_length": 2,
-      "xref_count": 2,
-      "pdf_version": "1.4"
-    },
-    "signatures": {
-      "has_digital_signature": false,
-      "signature_count": 0,
-      "signature_removed": false,
-      "modifications_after_signature": false
-    },
-    "threats": {
-      "has_javascript": false,
-      "has_embedded_files": false
-    },
-    "findings": ["Incremental updates detected", "Creation date missing from PDF metadata"]
-  }
-}
-```
 
 ---
 
@@ -936,40 +447,11 @@ Server-side error during processing.
 
 ---
 
-## Testing with Mock URLs
+## Testing
 
-Test keys (`htpbe_test_...`) only work with predefined test URLs. These behave like Stripe test cards — each URL returns a deterministic mock response at no cost and without downloading any real file.
+Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic synthetic check IDs (e.g., `TEST_CLEAN`, `TEST_MODIFIED_HIGH`) for the 17 predefined mock URLs — no real file is downloaded and no quota is consumed.
 
-**Test keys cannot be used with real PDF URLs** — attempting to do so returns a 403 error.
-
-```bash
-curl -X POST https://htpbe.tech/api/v1/analyze \
-  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
-```
-
-**Available mock URLs** (all at `https://htpbe.tech/api/v1/test/`):
-
-| URL                       | `status`       | `been_changed` | Description                                                 |
-| ------------------------- | -------------- | -------------- | ----------------------------------------------------------- |
-| `clean.pdf`               | `intact`       | `false`        | Original, no modifications                                  |
-| `clean-no-dates.pdf`      | `intact`       | `false`        | Original, metadata dates absent                             |
-| `modified-low.pdf`        | `modified`     | `true`         | Minor modification (1 incremental update)                   |
-| `modified-medium.pdf`     | `modified`     | `true`         | Moderate modification (creator/producer mismatch)           |
-| `modified-high.pdf`       | `modified`     | `true`         | Significant modification (multiple updates, tool change)    |
-| `modified-critical.pdf`   | `modified`     | `true`         | Critical: signature removed + JavaScript detected           |
-| `dates-mismatch.pdf`      | `modified`     | `true`         | Dates differ (14-day gap between creation and modification) |
-| `dates-same.pdf`          | `inconclusive` | `false`        | LibreOffice origin — integrity check not applicable         |
-| `incremental-updates.pdf` | `modified`     | `true`         | 6 incremental update sections detected                      |
-| `multiple-xref.pdf`       | `modified`     | `true`         | 4 cross-reference tables                                    |
-| `signature-valid.pdf`     | `intact`       | `false`        | Digitally signed, no post-sign modifications                |
-| `signature-removed.pdf`   | `modified`     | `true`         | Critical: digital signature removed                         |
-| `modified-after-sign.pdf` | `modified`     | `true`         | Modified after digital signing (signature invalidated)      |
-| `javascript.pdf`          | `modified`     | `true`         | Contains embedded JavaScript                                |
-| `embedded-files.pdf`      | `modified`     | `true`         | Contains embedded file attachments                          |
-| `both-threats.pdf`        | `modified`     | `true`         | JavaScript + embedded files + signature removed             |
-| `inconclusive.pdf`        | `inconclusive` | `false`        | Microsoft Excel origin — integrity check not applicable     |
+See [Testing with Test API Keys](../testing.md) for the complete test URL list, synthetic ID table, code examples, and checklist.
 
 ---
 
