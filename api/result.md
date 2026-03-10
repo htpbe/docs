@@ -254,7 +254,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 #### PDF Metadata Fields (Unix Timestamps)
 
-**Note:** Timestamps in this endpoint are Unix timestamps (seconds), not ISO 8601 strings like in `/api/v1/analyze`.
+All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(timestamp * 1000)` in JavaScript, `datetime.fromtimestamp(ts)` in Python.
 
 ##### `creation_date`
 
@@ -562,8 +562,9 @@ All errors follow this format:
 
 ```json
 {
-  "error": "Error message",
-  "details": "Optional additional context"
+  "error": "Human-readable error message",
+  "code": "machine_readable_error_code",
+  "details": "Optional additional context (present for some errors)"
 }
 ```
 
@@ -573,7 +574,8 @@ Returned when the check ID format is invalid.
 
 ```json
 {
-  "error": "Invalid check ID format"
+  "error": "Invalid check ID format",
+  "code": "invalid_request"
 }
 ```
 
@@ -601,7 +603,8 @@ Check not found or access denied.
 
 ```json
 {
-  "error": "Check not found or access denied"
+  "error": "Check not found or access denied",
+  "code": "not_found"
 }
 ```
 
@@ -628,6 +631,7 @@ Server error during retrieval.
 ```json
 {
   "error": "Failed to fetch result",
+  "code": "internal_error",
   "details": "Database query error"
 }
 ```

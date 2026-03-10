@@ -467,8 +467,9 @@ All errors follow this format:
 
 ```json
 {
-  "error": "Error message",
-  "details": "Optional additional context"
+  "error": "Human-readable error message",
+  "code": "machine_readable_error_code",
+  "details": "Optional additional context (present for some errors)"
 }
 ```
 
@@ -487,6 +488,7 @@ Server error during statistics calculation.
 ```json
 {
   "error": "Failed to fetch statistics",
+  "code": "internal_error",
   "details": "Database query error"
 }
 ```

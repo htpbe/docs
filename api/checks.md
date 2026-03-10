@@ -32,16 +32,16 @@ Authorization: Bearer YOUR_API_KEY
 
 ### Query Parameters
 
-| Parameter   | Type    | Required | Description                                                                       |
-| ----------- | ------- | -------- | --------------------------------------------------------------------------------- |
-| `limit`     | integer | No       | Number of results per page (1-500). Default: `100`                                |
-| `offset`    | integer | No       | Number of results to skip for pagination. Default: `0`                            |
-| `tool`      | string  | No       | Filter by tool name (matches Creator OR Producer). Case-sensitive, exact match.   |
-| `creator`   | string  | No       | Filter by Creator tool only. Case-sensitive, exact match.                         |
-| `producer`  | string  | No       | Filter by Producer tool only. Case-sensitive, exact match.                        |
-| `modified`  | boolean | No       | Filter by modification status. `true` = only modified, `false` = only unmodified. |
-| `from_date` | integer | No       | Unix timestamp (seconds). Return checks created on or after this date.            |
-| `to_date`   | integer | No       | Unix timestamp (seconds). Return checks created on or before this date.           |
+| Parameter   | Type    | Required | Description                                                                              |
+| ----------- | ------- | -------- | ---------------------------------------------------------------------------------------- |
+| `limit`     | integer | No       | Number of results per page (1-500). Default: `100`                                       |
+| `offset`    | integer | No       | Number of results to skip for pagination. Default: `0`                                   |
+| `tool`      | string  | No       | Filter by tool name (matches Creator OR Producer). Case-sensitive, exact match.          |
+| `creator`   | string  | No       | Filter by Creator tool only. Case-sensitive, exact match.                                |
+| `producer`  | string  | No       | Filter by Producer tool only. Case-sensitive, exact match.                               |
+| `status`    | string  | No       | Filter by verdict: `intact`, `modified`, or `inconclusive`. Omit to return all.          |
+| `from_date` | integer | No       | Unix timestamp (seconds). Return checks performed on or after this date (`check_date`).  |
+| `to_date`   | integer | No       | Unix timestamp (seconds). Return checks performed on or before this date (`check_date`). |
 
 #### Query Parameter Details
 
@@ -74,17 +74,21 @@ Authorization: Bearer YOUR_API_KEY
 - Example: `creator=Microsoft Word for Microsoft 365` finds only PDFs created in Word
 - Can combine: `creator=Word&producer=Adobe PDF Library` finds Word docs converted with Adobe
 
-**`modified`**
+**`status`**
 
-- `true` = only checks where modification was detected (`status: "modified"` or `"inconclusive"`)
-- `false` = only clean checks (`status: "intact"`)
-- Omit parameter to get all
+Exact match on the verdict field. Accepts one value:
+
+- `intact` — no modification indicators detected
+- `modified` — forensic evidence of modification found
+- `inconclusive` — consumer software origin (Word, LibreOffice, etc.); check not applicable
+
+Omit to return all checks regardless of verdict.
 
 **`from_date`** / **`to_date`**
 
 - Unix timestamps in seconds
-- Filters by PDF creation date (not check date)
-- Example: `from_date=1735689600` = PDFs created on/after Jan 1, 2025
+- Filters by `check_date` — when the analysis was performed
+- Example: `from_date=1735689600` = checks submitted on/after Jan 1, 2025
 - Use together for date ranges
 
 ### Example Requests
@@ -104,18 +108,22 @@ curl -X GET 'https://htpbe.tech/api/v1/checks?tool=Adobe%20PDF%20Library%2015.0&
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
-#### Filter by Modification Status
+#### Filter by Verdict
 
 ```bash
-# Get only modified PDFs
-curl -X GET 'https://htpbe.tech/api/v1/checks?modified=true&limit=200' \
+# Get only confirmed modified PDFs
+curl -X GET 'https://htpbe.tech/api/v1/checks?status=modified&limit=200' \
+  -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
+
+# Get inconclusive checks (consumer software origin)
+curl -X GET 'https://htpbe.tech/api/v1/checks?status=inconclusive&limit=200' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
 #### Filter by Date Range
 
 ```bash
-# Get PDFs created in February 2026
+# Get checks submitted in February 2026
 curl -X GET 'https://htpbe.tech/api/v1/checks?from_date=1738368000&to_date=1740960000' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
@@ -124,7 +132,7 @@ curl -X GET 'https://htpbe.tech/api/v1/checks?from_date=1738368000&to_date=17409
 
 ```bash
 # Modified Word documents from January 2026
-curl -X GET 'https://htpbe.tech/api/v1/checks?creator=Microsoft%20Word%20for%20Microsoft%20365&modified=true&from_date=1735689600&to_date=1738368000' \
+curl -X GET 'https://htpbe.tech/api/v1/checks?creator=Microsoft%20Word%20for%20Microsoft%20365&status=modified&from_date=1735689600&to_date=1738368000' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -623,8 +631,9 @@ All errors follow this format:
 
 ```json
 {
-  "error": "Error message",
-  "details": "Optional additional context"
+  "error": "Human-readable error message",
+  "code": "machine_readable_error_code",
+  "details": "Optional additional context (present for some errors)"
 }
 ```
 
@@ -635,6 +644,7 @@ Invalid query parameters.
 ```json
 {
   "error": "Invalid query parameters",
+  "code": "invalid_request",
   "details": "limit must be between 1 and 500"
 }
 ```
@@ -643,7 +653,7 @@ Invalid query parameters.
 
 - `limit` is less than 1 or greater than 500
 - `from_date` or `to_date` not valid Unix timestamps
-- `modified` is not a boolean value
+- `status` is not one of `intact`, `modified`, `inconclusive`
 
 **Solution:** Check your query parameters against the documented ranges.
 
@@ -653,8 +663,8 @@ Invalid query parameters.
 # Wrong - limit too high
 curl 'https://htpbe.tech/api/v1/checks?limit=1000'
 
-# Wrong - invalid boolean
-curl 'https://htpbe.tech/api/v1/checks?modified=yes'
+# Wrong - invalid status value
+curl 'https://htpbe.tech/api/v1/checks?status=yes'
 ```
 
 ---
@@ -674,6 +684,7 @@ Server error during query execution.
 ```json
 {
   "error": "Failed to fetch checks",
+  "code": "internal_error",
   "details": "Database query error"
 }
 ```
@@ -943,7 +954,7 @@ Monitor for high-risk patterns and send alerts:
 
 ```javascript
 async function securityMonitoring() {
-  const response = await fetch('https://htpbe.tech/api/v1/checks?modified=true&limit=500', {
+  const response = await fetch('https://htpbe.tech/api/v1/checks?status=modified&limit=500', {
     headers: { Authorization: `Bearer ${process.env.HTPBE_API_KEY}` },
   });
 

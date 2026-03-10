@@ -29,11 +29,10 @@ Authorization: Bearer YOUR_API_KEY
 
 ### Body Parameters
 
-| Parameter           | Type   | Required | Description                                                                                                                                                                        |
-| ------------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `url`               | string | **Yes**  | Publicly accessible HTTP/HTTPS URL pointing to a PDF file. The file must be downloadable without authentication and must not exceed 10 MB in size.                                 |
-| `original_filename` | string | No       | Original filename of the document (before any storage renaming). When provided, this name is stored and returned in results instead of the filename extracted from the URL.        |
-| `webhook_url`       | string | No       | **[Coming Soon]** URL where a webhook notification will be sent when analysis is complete (for async processing). Currently not implemented - all requests complete synchronously. |
+| Parameter           | Type   | Required | Description                                                                                                                                                                 |
+| ------------------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `url`               | string | **Yes**  | Publicly accessible HTTP/HTTPS URL pointing to a PDF file. The file must be downloadable without authentication and must not exceed 10 MB in size.                          |
+| `original_filename` | string | No       | Original filename of the document (before any storage renaming). When provided, this name is stored and returned in results instead of the filename extracted from the URL. |
 
 #### url Parameter Details
 
@@ -202,8 +201,9 @@ All errors follow this format:
 
 ```json
 {
-  "error": "Error message",
-  "details": "Optional additional context"
+  "error": "Human-readable error message",
+  "code": "machine_readable_error_code",
+  "details": "Optional additional context (present for some errors)"
 }
 ```
 
@@ -215,7 +215,8 @@ Returned when the request is malformed or contains invalid parameters.
 
 ```json
 {
-  "error": "Missing or invalid url parameter"
+  "error": "Missing or invalid url parameter",
+  "code": "invalid_request"
 }
 ```
 
@@ -229,7 +230,8 @@ Returned when the request is malformed or contains invalid parameters.
 
 ```json
 {
-  "error": "Invalid url format"
+  "error": "Invalid url format",
+  "code": "invalid_url_format"
 }
 ```
 
@@ -251,6 +253,7 @@ Returned when the request is malformed or contains invalid parameters.
 ```json
 {
   "error": "Failed to download file from URL",
+  "code": "download_failed",
   "details": "Network error" // or specific error message
 }
 ```
@@ -269,6 +272,7 @@ Returned when the request is malformed or contains invalid parameters.
 ```json
 {
   "error": "Failed to download file from URL",
+  "code": "download_failed",
   "details": "HTTP 404: Not Found"
 }
 ```
@@ -276,6 +280,7 @@ Returned when the request is malformed or contains invalid parameters.
 ```json
 {
   "error": "Failed to download file from URL",
+  "code": "download_failed",
   "details": "HTTP 403: Forbidden"
 }
 ```
@@ -348,6 +353,7 @@ File exceeds size limit.
 ```json
 {
   "error": "File size exceeds limit",
+  "code": "file_too_large",
   "details": "Maximum file size is 10 MB, received 15 MB"
 }
 ```
@@ -406,6 +412,7 @@ Request is valid but the content cannot be processed.
 ```json
 {
   "error": "Invalid PDF file",
+  "code": "invalid_pdf",
   "details": "PDF header not found or file is corrupted"
 }
 ```
@@ -433,6 +440,7 @@ Server-side error during processing.
 ```json
 {
   "error": "Failed to analyze PDF",
+  "code": "internal_error",
   "details": "Unexpected error during PDF parsing"
 }
 ```

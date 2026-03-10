@@ -2,7 +2,7 @@
 
 **HTPBE scans a PDF for forensic evidence of post-creation modification.**
 
-Upload a PDF → get an instant verdict: **no traces found**, **modified**, or **cannot verify**.
+Submit a PDF URL → get a verdict: **`intact`**, **`modified`**, or **`inconclusive`**.
 
 🌐 Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
 🔌 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
@@ -13,9 +13,9 @@ Upload a PDF → get an instant verdict: **no traces found**, **modified**, or *
 
 HTPBE analyzes a PDF file and returns one of three verdicts:
 
-- **Intact** — no modification indicators detected; origin appears institutional
-- **Modified** — forensic evidence of post-creation modification found
-- **Cannot Verify (Inconclusive)** — the PDF was created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.); the integrity check does not apply to documents anyone can create from scratch
+- **`intact`** — no modification indicators detected; origin appears institutional
+- **`modified`** — forensic evidence of post-creation modification found
+- **`inconclusive`** — the PDF was created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.); the integrity check does not apply to documents anyone can create from scratch
 
 **What "No Traces Found" actually means:** The algorithm found no forensic evidence of modification — no structural artifacts, no metadata inconsistencies, no editing tool signatures. This is a statement about what was detected, not a guarantee of authenticity. A document fabricated from scratch and exported cleanly may also show no traces, because it was never modified after creation — only created with false content. Absence of evidence is not evidence of absence.
 
@@ -48,6 +48,10 @@ REST API for automated document verification workflows.
 **OpenAPI spec:** [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml)
 
 Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All paid plans include a 14-day free trial and test keys for development.
+
+**Two-step flow:** `POST /analyze` triggers analysis synchronously and returns only `{ "id": "..." }`. Call `GET /result/{id}` immediately after to retrieve the full verdict and metadata.
+
+**Identifiers:** `POST /analyze` returns a full UUID (`id`) used with `GET /result/{id}`. The `GET /checks` list returns a short 8-character display field (`uid`) — this short `uid` cannot be passed to `GET /result/{id}`.
 
 ### Endpoints
 
@@ -91,7 +95,7 @@ curl https://htpbe.tech/api/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21 \
 ### List all checks
 
 ```bash
-curl "https://htpbe.tech/api/v1/checks?limit=20&modified=true" \
+curl "https://htpbe.tech/api/v1/checks?limit=20&status=modified" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
