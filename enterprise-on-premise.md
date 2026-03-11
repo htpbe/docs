@@ -25,7 +25,7 @@ The on-premise version is the same analysis engine that powers htpbe.tech — id
 **What's included:**
 
 - Docker image of the HTPBE analysis engine
-- Identical REST API (`POST /analyze`, `GET /result/{id}`, `GET /checks`, `GET /stats`)
+- Identical REST API (`POST /analyze`, `GET /result/{id}`, `GET /checks`)
 - No file size limits — configure based on your server capacity
 - No request quotas — your infrastructure, your rules
 - Monthly security patches and algorithm updates
@@ -122,13 +122,12 @@ A Helm chart is available on request. Contact iurii@rogulia.fi.
 
 ## API
 
-The on-premise API is identical to the cloud API. All four endpoints are available:
+The on-premise API is identical to the cloud API. All three public endpoints are available:
 
 ```
 POST /api/v1/analyze        — analyze a PDF by URL
 GET  /api/v1/result/{id}    — retrieve a past result
 GET  /api/v1/checks         — paginated list of all checks
-GET  /api/v1/stats          — aggregate statistics
 ```
 
 Authentication uses the `API_KEY` environment variable (if set):
@@ -179,8 +178,8 @@ No annual contracts. Cancel anytime.
 
 ## Contact
 
-**Iurii Rogulia** — Founder
-📧 iurii@rogulia.fi
-🌐 [htpbe.tech/api](https://htpbe.tech/api)
+**Iurii Rogulia** -- Founder
+Email: iurii@rogulia.fi
+Web: [htpbe.tech/api](https://htpbe.tech/api)
 
-For pricing, requirements discussion, or a demo — email directly. Response within 24 hours.
+For pricing, requirements discussion, or a demo -- email directly. Response within 24 hours.

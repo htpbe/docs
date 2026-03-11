@@ -18,14 +18,27 @@ Authorization: Bearer YOUR_API_KEY
 
 ---
 
+## Overage Billing
+
+Requests beyond your monthly quota are charged at your plan's overage rate and billed automatically at the end of your billing cycle. There is no hard block when your quota is reached — requests continue to succeed and overage charges appear on your next invoice.
+
+| Plan       | Overage rate |
+| ---------- | ------------ |
+| Starter    | $0.60/req    |
+| Growth     | $0.50/req    |
+| Pro        | $0.40/req    |
+| Enterprise | Included     |
+
+---
+
 ## Request
 
 ### Headers
 
-| Header          | Type   | Required | Description                                                                         |
-| --------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
-| `Authorization` | string | **Yes**  | Bearer token with your API key (`Bearer htpbe_live_...` or `Bearer htpbe_test_...`) |
-| `Content-Type`  | string | **Yes**  | Must be `application/json`                                                          |
+| Header          | Type   | Required | Description                                                                                                                                                                                                                                                                |
+| --------------- | ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Authorization` | string | **Yes**  | Bearer token with your API key (`Bearer htpbe_live_...` or `Bearer htpbe_test_...`). The `Bearer` prefix is recommended but optional — sending the raw key directly is also accepted, but only if the key starts with `htpbe_` (e.g., `Authorization: htpbe_live_sk_...`). |
+| `Content-Type`  | string | **Yes**  | Must be `application/json`                                                                                                                                                                                                                                                 |
 
 ### Body Parameters
 
@@ -105,9 +118,15 @@ result = response.json()
 
 ## Response
 
-### Success Response (200 OK)
+### Success Response (201 Created)
 
-Analysis is performed synchronously. The response contains only the check ID — call `GET /api/v1/result/{id}` immediately after to retrieve the full analysis results.
+Analysis is performed synchronously. The response contains only the check ID. A `Location` response header points to the full result URL. Call `GET /api/v1/result/{id}` immediately after to retrieve the full analysis results.
+
+#### Response Headers
+
+| Header     | Description                                                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Location` | Full URL of the result: `https://htpbe.tech/api/v1/result/{id}` (e.g. `https://htpbe.tech/api/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21`) |
 
 #### Response Structure
 
@@ -177,7 +196,7 @@ The verdict is set to `"modified"` when any of the following critical markers ar
 1. Incremental update sections detected in PDF structure
 2. Modifications found after digital signature was applied
 3. Digital signature was removed
-4. Creation and modification dates differ
+4. Both creation and modification dates are present and differ
 
 **What we detect:**
 
@@ -211,6 +230,21 @@ All errors follow this format:
 
 Returned when the request is malformed or contains invalid parameters.
 
+#### Invalid JSON Body
+
+```json
+{
+  "error": "Invalid JSON body",
+  "code": "invalid_request"
+}
+```
+
+**Cause:** The request body is not valid JSON (missing braces, trailing commas, unquoted keys, etc.).
+
+**Solution:** Ensure the request body is valid JSON and the `Content-Type: application/json` header is set.
+
+---
+
 #### Missing or Invalid url
 
 ```json
@@ -235,14 +269,15 @@ Returned when the request is malformed or contains invalid parameters.
 }
 ```
 
-**Cause:** The `url` value is not a valid HTTP/HTTPS URL.
+**Cause:** The `url` value is not a valid HTTP or HTTPS URL.
 
 **Examples of Invalid URLs:**
 
 - `not-a-url`
-- `ftp://example.com/file.pdf`
-- `file:///local/path.pdf`
 - `example.com/file.pdf` (missing protocol)
+- `file:///local/path.pdf` (local path)
+
+**Note:** `ftp://` URLs are rejected with this error — they fail the HTTP/HTTPS protocol check before any download is attempted.
 
 **Solution:** Use a complete HTTP or HTTPS URL like `https://example.com/file.pdf`
 
@@ -287,6 +322,8 @@ Returned when the request is malformed or contains invalid parameters.
 
 **Solution:** Ensure the URL is publicly accessible and returns the file successfully.
 
+> **Why 400 and not 422?** This is intentional. HTTP 422 (Unprocessable Entity) means the request syntax is valid but the server cannot process the _content_. Here the problem is the client's _input_ — the URL they supplied cannot be fetched. This is treated as a bad-input error (400), consistent with how invalid URL format is handled. Do not add 422 handling for this error code.
+
 ---
 
 ### 401 Unauthorized
@@ -308,7 +345,7 @@ Authentication failed.
 
 ---
 
-#### Invalid API Key
+#### Invalid API Key (live key)
 
 ```json
 {
@@ -317,13 +354,51 @@ Authentication failed.
 }
 ```
 
-**Cause:** API key not found in database or has been revoked.
+**Cause:** Live key (`htpbe_live_*`) not found in database or has been revoked.
 
 **Solution:**
 
 - Verify your API key is correct
-- Check that you're using a `htpbe_live_*` or `htpbe_test_*` key
 - Generate a new API key from the dashboard if needed
+
+---
+
+#### Invalid API Key (test key)
+
+```json
+{
+  "error": "Invalid test API key. Please check your credentials.",
+  "code": "invalid_api_key"
+}
+```
+
+**Cause:** Test key (`htpbe_test_*`) not found. Test keys are stored separately from live keys and cannot be used interchangeably.
+
+**Solution:**
+
+- Copy your test key from the **Test API Key** section on the [dashboard](https://htpbe.tech/dashboard/api-keys)
+- Verify you are not using a live key where a test key is expected (or vice versa)
+
+---
+
+### 402 Payment Required
+
+No active subscription found for this API key.
+
+```json
+{
+  "error": "No active subscription. Please subscribe to a plan to use the API.",
+  "code": "payment_required"
+}
+```
+
+**Cause:** Your account does not have an active paid plan.
+
+**Solution:**
+
+1. Log in to your dashboard at https://htpbe.tech/dashboard
+2. Subscribe to a plan (Starter, Growth, or Pro)
+3. Your API access will resume immediately
 
 ---
 
@@ -343,6 +418,20 @@ Access forbidden due to account status.
 **Cause:** Your API client account has been disabled (usually due to payment issues or terms violation).
 
 **Solution:** Contact support to reactivate your account.
+
+#### Test URL Required (test keys only)
+
+```json
+{
+  "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
+  "code": "test_url_required",
+  "details": "Use URLs like: https://htpbe.tech/api/v1/test/clean.pdf, https://htpbe.tech/api/v1/test/modified-high.pdf, etc."
+}
+```
+
+**Cause:** A test API key (`htpbe_test_...`) was used with a real URL. Test keys are restricted to the predefined test URLs — they cannot download or analyze real PDFs.
+
+**Solution:** Use one of the 19 mock test URLs listed in [Testing with Test API Keys](../testing.md), or switch to a live API key (`htpbe_live_...`) to analyze real files.
 
 ---
 
@@ -366,40 +455,6 @@ File exceeds size limit.
 - Split large PDFs into smaller files
 - Remove high-resolution images
 - Contact support for Enterprise plan with higher limits
-
----
-
-### 402 Payment Required
-
-Your free trial has ended and a payment method is required to continue.
-
-```json
-{
-  "error": "Your free trial has ended. Please upgrade your subscription to continue using the API.",
-  "code": "payment_required"
-}
-```
-
-**Cause:** Your 14-day free trial has expired and no active subscription exists.
-
-**What This Means:**
-
-- All paid plans include overage billing - your API **never stops** once you add a payment method
-- After adding payment, you'll never see this error again
-- Overage requests beyond your plan quota are billed at:
-  - **Starter:** $0.60 per request
-  - **Growth:** $0.50 per request
-  - **Pro:** $0.40 per request
-  - **Enterprise:** Custom pricing
-
-**Solution:**
-
-1. Log in to your dashboard at https://htpbe.tech/dashboard
-2. Add a payment method (credit card or ACH)
-3. Your API access will resume immediately
-4. Future requests will work seamlessly, even if you exceed your plan quota
-
-**Note:** Once you have an active payment method, the API **never blocks you** - overage charges apply automatically.
 
 ---
 
@@ -440,8 +495,7 @@ Server-side error during processing.
 ```json
 {
   "error": "Failed to analyze PDF",
-  "code": "internal_error",
-  "details": "Unexpected error during PDF parsing"
+  "code": "internal_error"
 }
 ```
 
@@ -457,7 +511,7 @@ Server-side error during processing.
 
 ## Testing
 
-Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic synthetic check IDs (e.g., `TEST_CLEAN`, `TEST_MODIFIED_HIGH`) for the 17 predefined mock URLs — no real file is downloaded and no quota is consumed.
+Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic UUID v4 check IDs (e.g., `00000000-0000-4000-8000-000000000001` for `clean.pdf`, `00000000-0000-4000-8000-000000000005` for `modified-high.pdf`) for the 19 predefined mock URLs + 1 error trigger URL — no real file is downloaded and no quota is consumed.
 
 See [Testing with Test API Keys](../testing.md) for the complete test URL list, synthetic ID table, code examples, and checklist.
 
@@ -474,7 +528,6 @@ See [Testing with Test API Keys](../testing.md) for the complete test URL list, 
 ### Supported PDF Features
 
 - ✅ PDF versions 1.0 through 2.0
-- ✅ Encrypted PDFs (user password required to be removed before analysis)
 - ✅ Linearized (Fast Web View) PDFs
 - ✅ PDFs with forms, annotations, and multimedia
 - ✅ Signed PDFs (detects but doesn't validate signatures)
@@ -482,7 +535,7 @@ See [Testing with Test API Keys](../testing.md) for the complete test URL list, 
 ### Limitations
 
 - ❌ Cannot validate cryptographic signatures (only detects presence/removal)
-- ❌ Cannot access password-protected PDFs
+- ❌ Password-protected PDFs — the password must be removed before submitting for analysis
 - ❌ Cannot analyze files behind authentication
 - ❌ Does not perform OCR or content analysis
 - ❌ Does not detect visual changes (only structural/metadata changes)
@@ -491,6 +544,5 @@ See [Testing with Test API Keys](../testing.md) for the complete test URL list, 
 
 **Related Endpoints:**
 
-- [GET /api/v1/result/{uid}](./result.md) - Retrieve full analysis results
-- [GET /api/v1/stats](./stats.md) - Get aggregate statistics
+- [GET /api/v1/result/{id}](./result.md) - Retrieve full analysis results
 - [GET /api/v1/checks](./checks.md) - List all checks with filtering for custom analytics

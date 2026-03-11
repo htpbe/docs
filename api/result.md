@@ -26,39 +26,38 @@ Authorization: Bearer YOUR_API_KEY
 
 ### Path Parameters
 
-| Parameter | Type   | Required | Description                                                                                                        |
-| --------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------ |
-| `id`      | string | **Yes**  | Check ID returned from `POST /api/v1/analyze`. UUID v4 for live requests; `TEST_*` synthetic ID for test requests. |
+| Parameter | Type   | Required | Description                                                                                                           |
+| --------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `id`      | string | **Yes**  | Check ID returned from `POST /api/v1/analyze`. UUID v4 for all requests — live and test keys both return UUID v4 IDs. |
 
 #### id Parameter Details
 
 **Live key format:** UUID v4 — `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx`
 
-**Test key format:** Deterministic synthetic ID — `TEST_CLEAN`, `TEST_MODIFIED_HIGH`, etc.
+**Test key format:** Deterministic UUID v4 — fixed all-zeros pattern, e.g. `00000000-0000-4000-8000-000000000001`
 
 **Valid Examples:**
 
 - `506a6b1b-1360-48a2-b389-abb346f85d04` (live key request)
-- `TEST_CLEAN` (test key request)
+- `00000000-0000-4000-8000-000000000001` (test key request — `clean.pdf`)
 
 **Invalid Examples:**
 
 - `abc123` (too short, not a UUID)
-- `506a6b1b` (incomplete UUID — this is the short display `uid` from `/checks`, not usable here)
 - `` (empty string)
 
 **Where to Get:** The `id` field returned by `POST /api/v1/analyze`.
 
 ### Headers
 
-| Header          | Type   | Required | Description                                                                         |
-| --------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
-| `Authorization` | string | **Yes**  | Bearer token with your API key (`Bearer htpbe_live_...` or `Bearer htpbe_test_...`) |
+| Header          | Type   | Required | Description                                                                                                                                                                                                                                                                |
+| --------------- | ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Authorization` | string | **Yes**  | Bearer token with your API key (`Bearer htpbe_live_...` or `Bearer htpbe_test_...`). The `Bearer` prefix is recommended but optional — sending the raw key directly is also accepted, but only if the key starts with `htpbe_` (e.g., `Authorization: htpbe_live_sk_...`). |
 
 ### Example Request
 
 ```bash
-curl -X GET https://htpbe.tech/api/v1/result/506a6b1b-1360-48a2-b389-abb346f85d04 \
+curl https://htpbe.tech/api/v1/result/506a6b1b-1360-48a2-b389-abb346f85d04 \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -108,13 +107,13 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 {
   // Core Identification
   id: string;
-  original_filename: string;
-  check_date: number;
+  filename: string;
+  check_date: number | null;
   file_size: number;
 
   // Algorithm version tracking
   algorithm_version: string;
-  is_outdated: boolean;
+  current_algorithm_version: string;
   outdated_warning?: string;
 
   // Primary Verdict
@@ -123,7 +122,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   origin: {
     type: "consumer_software" | "institutional" | "unknown";
     software: string | null;
-    warning: string | null;
   };
 
   // PDF Metadata (Unix timestamps)
@@ -173,30 +171,31 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 - **Type:** `string` (UUID v4)
 - **Always Present:** Yes
-- **Description:** Unique identifier for this check (same as the `uid` parameter)
+- **Description:** Unique identifier for this check
 - **Format:** `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx`
 - **Example:** `"506a6b1b-1360-48a2-b389-abb346f85d04"`
 
-##### `original_filename`
+##### `filename`
 
 - **Type:** `string`
 - **Always Present:** Yes
 - **Description:** The stored filename for this check. If `original_filename` was provided in the `POST /analyze` request body, that value is used. Otherwise it is extracted from the last segment of the `url` path.
 - **Examples:**
-  - `"contract.pdf"` (provided as `original_filename` or from `https://example.com/docs/contract.pdf`)
+  - `"contract.pdf"` (provided as `original_filename` in the analyze request, or extracted from `https://example.com/docs/contract.pdf`)
   - `"invoice-2024-01.pdf"`
-  - `"document.pdf"` (default if no filename determinable from URL)
+  - `"document.pdf"` (default set at analysis time when no filename is determinable from the URL)
+  - `""` (empty string for legacy records created before filename tracking)
 
 ##### `check_date`
 
-- **Type:** `number` (Unix timestamp in seconds)
-- **Always Present:** Yes
+- **Type:** `number | null` (Unix timestamp in seconds)
+- **Can Be Null:** Yes — `null` for test key results (synthetic responses have no real analysis timestamp) and for legacy records created before timestamp tracking was introduced
 - **Description:** Timestamp when the analysis was performed
 - **Format:** Seconds since Unix epoch (January 1, 1970 00:00:00 UTC)
 - **Example:** `1736542583` = January 10, 2025, 18:23:03 UTC
 - **Convert to Date:**
-  - JavaScript: `new Date(check_date * 1000)`
-  - Python: `datetime.fromtimestamp(check_date)`
+  - JavaScript: `check_date ? new Date(check_date * 1000) : null`
+  - Python: `datetime.fromtimestamp(check_date) if check_date else None`
 
 ##### `file_size`
 
@@ -215,28 +214,27 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 - **Type:** `string`
 - **Always Present:** Yes
-- **Description:** Version of the detection algorithm used when this check was performed
+- **Description:** Version of the detection algorithm used when this check was performed. Defaults to `"1.0.0"` for records created before algorithm versioning was introduced.
 - **Format:** Semantic versioning (e.g., `"2.1.0"`)
 - **Usage:** Compare against the current version to determine if re-analysis is recommended
 - **Example:** `"2.1.0"`
 
-##### `is_outdated`
+##### `current_algorithm_version`
 
-- **Type:** `boolean`
+- **Type:** `string`
 - **Always Present:** Yes
-- **Description:** Whether the check was performed with an older algorithm version
-- **Possible Values:**
-  - `true` — Analysis was performed with an outdated algorithm; re-analysis recommended
-  - `false` — Analysis is current
-- **Usage:** Prompt users to re-check files where `is_outdated` is `true`
+- **Description:** The current algorithm version running on the server
+- **Format:** Semantic versioning (e.g., `"2.1.6"`)
+- **Usage:** Compare `algorithm_version` against `current_algorithm_version` to determine if the check is outdated. If `algorithm_version !== current_algorithm_version`, the check was performed with an older algorithm and re-analysis is recommended.
+- **Example:** `"2.1.6"`
 
 ##### `outdated_warning`
 
 - **Type:** `string` (optional)
-- **Present When:** `is_outdated` is `true`
-- **Absent When:** `is_outdated` is `false`
+- **Present When:** `algorithm_version` is older than `current_algorithm_version` (semver comparison — a future version would not trigger this warning even if the values differ)
+- **Absent When:** `algorithm_version` is current
 - **Description:** Human-readable explanation of what changed in the newer algorithm version and why re-analysis is recommended
-- **Example:** `"Detection accuracy for online editor tools improved in v2.1.0. We recommend re-analyzing this file for more accurate results."`
+- **Example:** `"Our detection software has been updated since this file was analyzed. The results shown below may no longer be accurate. We recommend re-analyzing this file for more accurate results."`
 
 ---
 
@@ -246,8 +244,26 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 - **Type:** `"intact" | "modified" | "inconclusive"`
 - **Always Present:** Yes
-- **Description:** **PRIMARY VERDICT** — see [Understanding the verdict](./analyze.md#understanding-the-verdict) for details
-- See `POST /api/v1/analyze` documentation for full description of `status`, `status_reason`, and `origin` fields.
+- **Description:** **PRIMARY VERDICT.** Priority: `modified > inconclusive > intact`
+  - `"modified"` — forensic evidence of post-creation modification detected; takes priority over origin type — a modified Word or Excel document is still `modified`
+  - `"inconclusive"` — consumer software origin (Word, LibreOffice, Google Docs, etc.) with no modification detected; integrity check does not apply to documents anyone can create from scratch — a document that was never an "original" in the institutional sense cannot be verified for post-creation tampering
+  - `"intact"` — no modification detected and origin appears institutional
+- **Note:** `status_reason: "consumer_software_origin"` only appears when `status === "inconclusive"` (consumer software + no modification detected)
+
+##### `status_reason`
+
+- **Type:** `"consumer_software_origin"` (string literal) | absent
+- **Always Present:** No — only present when `status === "inconclusive"`
+- **Description:** Explains why the result is inconclusive. Currently only one value is defined.
+- **Value:** `"consumer_software_origin"` — the PDF was created by consumer software (Microsoft Word, LibreOffice, Google Docs, etc.). These tools allow anyone to create a document from scratch, so there is no meaningful "original" to compare against. Integrity verification does not apply.
+- **Usage:** Always check `status_reason` when `status === "inconclusive"` — it tells you _why_ the result is inconclusive, not just that it is.
+
+```typescript
+if (result.status === 'inconclusive') {
+  // result.status_reason === 'consumer_software_origin'
+  // The document was created in consumer software — not tampered, just unverifiable
+}
+```
 
 ---
 
@@ -279,7 +295,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 - **Can Be Null:** Yes
 - **Description:** Application that created the original document
 - **Example:** `"Microsoft Word for Microsoft 365"`
-- **See:** [analyze.md](./analyze.md#analysismetadatacreator) for common values
+- **Common Values:** `"Microsoft Word for Microsoft 365"`, `"Adobe InDesign CC"`, `"LibreOffice Writer"`, `"Google Docs"`
 
 ##### `producer`
 
@@ -287,7 +303,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 - **Can Be Null:** Yes
 - **Description:** Software that generated the final PDF
 - **Example:** `"Adobe PDF Library 15.0"`
-- **See:** [analyze.md](./analyze.md#analysismetadataproducer) for common values
+- **Common Values:** `"Adobe PDF Library 15.0"`, `"PDFKit"`, `"Microsoft: Print To PDF"`, `"iText 7.0.0"`
 
 ---
 
@@ -378,21 +394,21 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 - **Type:** `number` (integer)
 - **Always Present:** Yes
 - **Description:** Number of cross-reference (xref) tables in the PDF
-- **See:** [analyze.md](./analyze.md#analysisstrstructurexref_count)
+- **Interpretation:** `1` = original document, `2+` = document has been modified and saved multiple times
 
 ##### `has_incremental_updates`
 
 - **Type:** `boolean`
 - **Always Present:** Yes
-- **Description:** Whether PDF has incremental update sections
-- **See:** [analyze.md](./analyze.md#analysisstrstructurehas_incremental_updates)
+- **Description:** Whether PDF has incremental update sections (been saved multiple times after initial creation)
+- **Values:** `true` = PDF has been edited and saved incrementally, `false` = PDF was generated in one operation
 
 ##### `update_chain_length`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Description:** Number of update sections in PDF structure
-- **See:** [analyze.md](./analyze.md#analysisstrstructureupdate_chain_length)
+- **Description:** Number of update sections in PDF structure (how many times the PDF was saved)
+- **Interpretation:** `1` = original, `2-5` = light editing, `6-10` = moderate editing, `11+` = heavy editing
 
 ##### `pdf_version`
 
@@ -400,7 +416,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 - **Can Be Null:** Yes
 - **Description:** PDF specification version
 - **Examples:** `"1.7"`, `"1.4"`, `"2.0"`, `null`
-- **See:** [analyze.md](./analyze.md#analysisstrstructurepdf_version)
+- **Common Versions:** `"1.7"` (most common, Acrobat 8.x+), `"1.4"` (Acrobat 5.x), `"2.0"` (modern ISO standard)
 
 ---
 
@@ -411,34 +427,33 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 - **Type:** `boolean`
 - **Always Present:** Yes
 - **Description:** Whether PDF currently contains digital signatures
-- **See:** [analyze.md](./analyze.md#analysissignatureshas_digital_signature)
+- **Values:** `true` = digitally signed, `false` = not signed
+- **Note:** Signature validity is NOT checked (only presence)
 
 ##### `signature_count`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Description:** Number of digital signature fields
-- **See:** [analyze.md](./analyze.md#analysissignaturessignature_count)
+- **Description:** Number of digital signature fields in the PDF
+- **Range:** `0` and higher
 
 ##### `signature_removed`
 
 - **Type:** `boolean`
 - **Always Present:** Yes
-- **Description:** Whether a digital signature was removed
-- **See:** [analyze.md](./analyze.md#analysissignaturessignature_removed)
+- **Description:** Whether a digital signature was removed from the document
+- **Critical:** If `true`, this is strong evidence of tampering
 
 ##### `modifications_after_signature`
 
 - **Type:** `boolean`
 - **Always Present:** Yes
-- **Description:** Whether PDF was modified after being signed
-- **See:** [analyze.md](./analyze.md#analysissignaturesmodifications_after_signature)
+- **Description:** Whether PDF was modified after being digitally signed
+- **Critical:** If `true`, the digital signature is likely invalidated
 
 ---
 
 #### Content Analysis Fields
-
-**Note:** These fields are only available in the `/result` endpoint, not in `/analyze`.
 
 ##### `page_count`
 
@@ -469,15 +484,17 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 - **Type:** `boolean`
 - **Always Present:** Yes
-- **Description:** Whether PDF contains JavaScript code
-- **See:** [analyze.md](./analyze.md#analysisthreatshas_javascript)
+- **Description:** Whether PDF contains embedded JavaScript code
+- **Values:** `true` = JavaScript present (potential security risk), `false` = no JavaScript detected
+- **Security Note:** JavaScript in PDFs can be used for malicious purposes
 
 ##### `has_embedded_files`
 
 - **Type:** `boolean`
 - **Always Present:** Yes
 - **Description:** Whether PDF has embedded file attachments
-- **See:** [analyze.md](./analyze.md#analysisthreatshas_embedded_files)
+- **Values:** `true` = has attachments (potential security risk), `false` = no attachments
+- **Security Note:** Attachments can hide malware
 
 ---
 
@@ -488,22 +505,22 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 - **Type:** `string[]` (array of strings)
 - **Always Present:** Yes
 - **Description:** List of detection methods that were applied during analysis
-- **Empty When:** Error during analysis (shouldn't occur in successful responses)
+- **Empty When:** No anomalies detected (intact documents) or inconclusive origin
 - **Common Values:**
-  - `"Metadata comparison"` - Analyzed creation vs modification dates
-  - `"Structure analysis"` - Examined PDF internal structure for updates
-  - `"Signature verification"` - Checked for digital signature presence/removal
-  - `"Date sequence analysis"` - Validated chronological consistency of dates
-  - `"Tool pattern matching"` - Checked creator/producer combinations
+  - `"metadata_analysis"` - Analyzed creation vs modification dates
+  - `"structure_analysis"` - Examined PDF internal structure for updates
+  - `"signature_analysis"` - Checked for digital signature presence/removal
+  - `"tool_detection"` - Checked creator/producer combinations for known editing tools
+  - `"threat_analysis"` - Checked for JavaScript and embedded files
 - **Usage:** Indicates which analysis techniques were used (informational)
 
 ##### `specific_findings`
 
 - **Type:** `string[]` (array of strings)
 - **Always Present:** Yes
-- **Description:** Detailed list of issues and anomalies detected (same as `findings` in analyze response)
+- **Description:** Detailed human-readable list of issues and anomalies detected during analysis
 - **Empty When:** No issues detected (original document)
-- **See:** [analyze.md](./analyze.md#analysisfindings) for example values
+- **Example Values:** `"Document modified 36 days after creation"`, `"Digital signature removed (critical tampering)"`, `"JavaScript code detected in PDF"`, `"Multiple xref tables detected (4 total)"`
 
 ---
 
@@ -512,20 +529,19 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 ```json
 {
   "id": "506a6b1b-1360-48a2-b389-abb346f85d04",
-  "original_filename": "contract.pdf",
+  "filename": "contract.pdf",
   "check_date": 1736542583,
   "file_size": 245632,
-  "algorithm_version": "2.1.0",
-  "is_outdated": false,
+  "algorithm_version": "2.1.6",
+  "current_algorithm_version": "2.1.6",
   "status": "modified",
   "origin": {
     "type": "institutional",
-    "software": null,
-    "warning": null
+    "software": null
   },
   "creation_date": 1704110400,
   "modification_date": 1707840000,
-  "creator": "Microsoft Word for Microsoft 365",
+  "creator": "Adobe Acrobat Pro DC",
   "producer": "Adobe PDF Library 15.0",
   "critical_modification_marker": "Digital signature was removed",
   "modification_confidence": "certain",
@@ -541,15 +557,57 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "signature_removed": true,
   "modifications_after_signature": false,
   "page_count": 12,
-  "object_count": 456,
+  "object_count": 487,
   "has_javascript": false,
   "has_embedded_files": false,
-  "detection_methods": ["Metadata comparison", "Structure analysis", "Signature verification"],
+  "detection_methods": ["metadata_analysis", "structure_analysis", "signature_analysis"],
   "specific_findings": [
     "Document modified 36 days after creation",
     "Digital signature removed (critical tampering)",
-    "Three incremental updates detected"
+    "3 incremental update chains detected"
   ]
+}
+```
+
+#### Example Response — Inconclusive (Consumer Software Origin)
+
+```json
+{
+  "id": "00000000-0000-4000-8000-000000000011",
+  "filename": "inconclusive.pdf",
+  "check_date": null,
+  "file_size": 204800,
+  "algorithm_version": "2.1.6",
+  "current_algorithm_version": "2.1.6",
+  "status": "inconclusive",
+  "status_reason": "consumer_software_origin",
+  "origin": {
+    "type": "consumer_software",
+    "software": "Microsoft Excel"
+  },
+  "creation_date": 1709283600,
+  "modification_date": 1709283600,
+  "creator": "Microsoft Excel 2019",
+  "producer": "Microsoft: Print To PDF",
+  "critical_modification_marker": null,
+  "modification_confidence": "none",
+  "verdict_reasoning": null,
+  "date_sequence_valid": true,
+  "metadata_completeness_score": 65,
+  "xref_count": 1,
+  "has_incremental_updates": false,
+  "update_chain_length": 1,
+  "pdf_version": "1.7",
+  "has_digital_signature": false,
+  "signature_count": 0,
+  "signature_removed": false,
+  "modifications_after_signature": false,
+  "page_count": 1,
+  "object_count": 82,
+  "has_javascript": false,
+  "has_embedded_files": false,
+  "detection_methods": [],
+  "specific_findings": []
 }
 ```
 
@@ -580,11 +638,11 @@ Returned when the check ID format is invalid.
 
 **Causes:**
 
-- `uid` is empty string
-- `uid` is too short (< 10 characters)
-- `uid` contains invalid characters
+- `id` is empty string
+- `id` is not a valid UUID v4 (e.g. `abc123`, `12345678-1234-1234-1234-12345678`)
+- `id` contains invalid characters
 
-**Solution:** Ensure you're using the full UUID returned from `/api/v1/analyze`
+**Solution:** Ensure you're using the full UUID v4 returned by `POST /api/v1/analyze` or from the `id` field in `GET /api/v1/checks`. Format: `xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx` (32 hex digits with 4 hyphens).
 
 ---
 
@@ -593,6 +651,22 @@ Returned when the check ID format is invalid.
 Authentication errors (same as analyze endpoint).
 
 **See:** [analyze.md](./analyze.md#401-unauthorized) for details.
+
+---
+
+### 402 Payment Required
+
+No active subscription found for this API key.
+
+**See:** [analyze.md](./analyze.md#402-payment-required) for details.
+
+---
+
+### 403 Forbidden
+
+Access forbidden due to account status (deactivated key).
+
+**See:** [analyze.md](./analyze.md#403-forbidden) for details.
 
 ---
 
@@ -630,8 +704,7 @@ Server error during retrieval.
 ```json
 {
   "error": "Failed to fetch result",
-  "code": "internal_error",
-  "details": "Database query error"
+  "code": "internal_error"
 }
 ```
 
@@ -646,34 +719,7 @@ Server error during retrieval.
 
 ## Use Cases
 
-### 1. Polling for Results
-
-If you implement async analysis (future webhook feature), you can poll this endpoint:
-
-```javascript
-async function waitForResult(checkId, maxAttempts = 10) {
-  for (let i = 0; i < maxAttempts; i++) {
-    const response = await fetch(`https://htpbe.tech/api/v1/result/${checkId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-
-    if (response.ok) {
-      return await response.json();
-    }
-
-    // Wait 2 seconds before retry
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-
-  throw new Error('Analysis timed out');
-}
-```
-
-**Note:** Currently unnecessary as all analyses complete synchronously.
-
----
-
-### 2. Building Audit Trails
+### 1. Building Audit Trails
 
 Store check IDs and retrieve full results later for compliance:
 
@@ -693,7 +739,7 @@ const auditData = await fetch(`https://htpbe.tech/api/v1/result/${doc.htpbe_chec
 
 ---
 
-### 3. Detailed Reporting
+### 2. Detailed Reporting
 
 Use the additional fields for comprehensive reports:
 
@@ -725,5 +771,4 @@ const report = {
 **Related Endpoints:**
 
 - [POST /api/v1/analyze](./analyze.md) - Analyze a PDF
-- [GET /api/v1/stats](./stats.md) - Get aggregate statistics
 - [GET /api/v1/checks](./checks.md) - List all checks with filtering for custom analytics

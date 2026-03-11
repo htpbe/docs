@@ -6,7 +6,7 @@ Test API keys let you build and test your integration without using real PDF fil
 
 ## What Is a Test Key
 
-Every paid account has exactly one test API key alongside its live key(s). The two key types share the same format but differ in prefix:
+Every account (including free) has exactly one test API key alongside its live key(s). The two key types share the same format but differ in prefix:
 
 | Key type | Format           | Example              |
 | -------- | ---------------- | -------------------- |
@@ -36,6 +36,7 @@ Test keys can only be used with mock URLs at `https://htpbe.tech/api/v1/test/`. 
 ```json
 {
   "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
+  "code": "test_url_required",
   "details": "Use URLs like: https://htpbe.tech/api/v1/test/clean.pdf, https://htpbe.tech/api/v1/test/modified-high.pdf, etc."
 }
 ```
@@ -54,31 +55,46 @@ Test requests are completely free of quota. Running 10,000 test requests does no
 
 ### Results use deterministic synthetic IDs
 
-`POST /analyze` with a test key returns a deterministic `id` based on the test filename — not a random UUID:
+`POST /analyze` with a test key returns a deterministic UUID v4 `id` based on the test filename. Like Stripe's `4242 4242 4242 4242` test card number that passes real card format validation, these IDs pass UUID v4 format validation while being obviously synthetic (all-zeros pattern with sequential last bytes):
 
-| Test URL                         | Returned `id`            |
-| -------------------------------- | ------------------------ |
-| `.../test/clean.pdf`             | `TEST_CLEAN`             |
-| `.../test/modified-high.pdf`     | `TEST_MODIFIED_HIGH`     |
-| `.../test/signature-removed.pdf` | `TEST_SIGNATURE_REMOVED` |
-| `.../test/dates-same.pdf`        | `TEST_DATES_SAME`        |
+| Test URL                             | Returned `id`                          |
+| ------------------------------------ | -------------------------------------- |
+| `.../test/clean.pdf`                 | `00000000-0000-4000-8000-000000000001` |
+| `.../test/clean-no-dates.pdf`        | `00000000-0000-4000-8000-000000000002` |
+| `.../test/modified-low.pdf`          | `00000000-0000-4000-8000-000000000003` |
+| `.../test/modified-medium.pdf`       | `00000000-0000-4000-8000-000000000004` |
+| `.../test/modified-high.pdf`         | `00000000-0000-4000-8000-000000000005` |
+| `.../test/modified-critical.pdf`     | `00000000-0000-4000-8000-000000000006` |
+| `.../test/dates-mismatch.pdf`        | `00000000-0000-4000-8000-000000000007` |
+| `.../test/dates-same.pdf`            | `00000000-0000-4000-8000-000000000008` |
+| `.../test/incremental-updates.pdf`   | `00000000-0000-4000-8000-000000000009` |
+| `.../test/multiple-xref.pdf`         | `00000000-0000-4000-8000-00000000000a` |
+| `.../test/signature-valid.pdf`       | `00000000-0000-4000-8000-00000000000b` |
+| `.../test/signature-removed.pdf`     | `00000000-0000-4000-8000-00000000000c` |
+| `.../test/modified-after-sign.pdf`   | `00000000-0000-4000-8000-00000000000d` |
+| `.../test/javascript.pdf`            | `00000000-0000-4000-8000-00000000000e` |
+| `.../test/embedded-files.pdf`        | `00000000-0000-4000-8000-00000000000f` |
+| `.../test/both-threats.pdf`          | `00000000-0000-4000-8000-000000000010` |
+| `.../test/inconclusive.pdf`          | `00000000-0000-4000-8000-000000000011` |
+| `.../test/date-sequence-invalid.pdf` | `00000000-0000-4000-8000-000000000012` |
+| `.../test/outdated-version.pdf`      | `00000000-0000-4000-8000-000000000013` |
 
 Because the ID is deterministic, you can hardcode it in your tests without calling `POST /analyze` first.
 
 ### Full two-step flow works with test keys
 
-`GET /api/v1/result/{id}` works with synthetic IDs — **but only when called with a test key**. Passing a `TEST_*` ID with a live key returns 404. This lets you test the complete two-step flow:
+`GET /api/v1/result/{id}` works with synthetic IDs — **but only when called with a test key**. Passing a synthetic test ID with a live key returns 404. This lets you test the complete two-step flow:
 
-1. `POST /analyze` → `{ "id": "TEST_MODIFIED_HIGH" }`
-2. `GET /result/TEST_MODIFIED_HIGH` → full synthetic result
+1. `POST /analyze` → `{ "id": "00000000-0000-4000-8000-000000000005" }`
+2. `GET /result/00000000-0000-4000-8000-000000000005` → full synthetic result
 
 ### Results are NOT saved to the database
 
-Synthetic results are generated on the fly — no DB writes occur. The `TEST_*` IDs are recognized by the server and resolved to mock data without any persistence.
+Synthetic results are generated on the fly — no DB writes occur. Synthetic IDs are recognized by the server and resolved to mock data without any persistence.
 
 ### Responses are deterministic
 
-The same test URL always returns exactly the same result, regardless of how many times you call it or which account you use. This makes it easy to write reliable assertions in automated tests.
+The same test URL always returns the same result fields, regardless of how many times you call it or which account you use. `check_date` is always `null` for synthetic results — test responses have no real analysis timestamp. Do not assert on `check_date` in automated tests.
 
 ---
 
@@ -97,39 +113,54 @@ Response:
 
 ```json
 {
-  "id": "TEST_MODIFIED_HIGH"
+  "id": "00000000-0000-4000-8000-000000000005"
 }
 ```
 
 **Step 2: Retrieve the full result**
 
 ```bash
-curl https://htpbe.tech/api/v1/result/TEST_MODIFIED_HIGH \
+curl https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000005 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY"
 ```
 
-Response (excerpt):
+Response:
 
 ```json
 {
-  "id": "TEST_MODIFIED_HIGH",
+  "id": "00000000-0000-4000-8000-000000000005",
+  "filename": "modified-high.pdf",
+  "check_date": null,
+  "file_size": 1048576,
+  "algorithm_version": "2.1.6",
+  "current_algorithm_version": "2.1.6",
   "status": "modified",
-  "modification_confidence": "certain",
-  "critical_modification_marker": "Known PDF editing tool detected",
-  "verdict_reasoning": "Known PDF editing tool detected (PDFtk Server)",
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": {
+    "type": "institutional",
+    "software": null
+  },
   "creation_date": 1704067200,
-  "modification_date": 1710524700,
+  "modification_date": 1710528300,
   "creator": "Adobe Acrobat Pro DC",
   "producer": "PDFtk Server 2.02",
+  "critical_modification_marker": "Known PDF editing tool detected",
+  "modification_confidence": "high",
+  "verdict_reasoning": "Known PDF editing tool detected (PDFtk Server)",
+  "date_sequence_valid": true,
+  "metadata_completeness_score": 75,
+  "xref_count": 4,
   "has_incremental_updates": true,
   "update_chain_length": 5,
-  "xref_count": 4,
   "pdf_version": "1.7",
   "has_digital_signature": false,
+  "signature_count": 0,
   "signature_removed": false,
+  "modifications_after_signature": false,
+  "page_count": 12,
+  "object_count": 480,
   "has_javascript": false,
   "has_embedded_files": false,
+  "detection_methods": ["structure_analysis", "tool_detection", "metadata_analysis"],
   "specific_findings": [
     "Extensive modification history",
     "Producer changed from Adobe to PDFtk",
@@ -139,23 +170,25 @@ Response (excerpt):
 }
 ```
 
-Since IDs are deterministic, you can skip Step 1 and call `GET /result/TEST_MODIFIED_HIGH` directly in your tests.
+Note: `check_date` is always `null` for synthetic test results — do not assert on it in tests.
+
+Since IDs are deterministic, you can skip Step 1 and call `GET /result/00000000-0000-4000-8000-000000000005` directly in your tests.
 
 ---
 
 ## Available Test URLs
 
-All 17 test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (including files you host yourself) will be rejected when using a test key.
+All test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (including files you host yourself) will be rejected when using a test key.
 
 ### Clean / Original
 
 Use these to test how your application handles documents that pass verification.
 
-| URL                                                  | `status` | Notes                                                               |
-| ---------------------------------------------------- | -------- | ------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | Typical original document with full metadata                        |
-| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | Original document — metadata dates absent (e.g. auto-generated PDF) |
-| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | Digitally signed, no post-sign modifications                        |
+| URL                                                  | `status` | Notes                                                                            |
+| ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | Typical original document — full creator/producer metadata, no modification date |
+| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | Original document — metadata dates absent (e.g. auto-generated PDF)              |
+| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | Digitally signed, no post-sign modifications                                     |
 
 ### Inconclusive (Consumer Software Origin)
 
@@ -192,6 +225,23 @@ Use these to test how your application handles severe tampering alerts.
 | `https://htpbe.tech/api/v1/test/modified-critical.pdf`   | `modified` | Signature removed + JavaScript detected + 8-step modification chain |
 | `https://htpbe.tech/api/v1/test/both-threats.pdf`        | `modified` | JavaScript + embedded files + signature removed — maximum severity  |
 
+### Special Field Scenarios
+
+Use these to test fields that require specific scenarios not covered by the standard mocks.
+
+| URL                                                        | Key field                    | Notes                                                                                          |
+| ---------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/date-sequence-invalid.pdf` | `date_sequence_valid: false` | Modification date is before creation date — impossible in normal workflow, indicates tampering |
+| `https://htpbe.tech/api/v1/test/outdated-version.pdf`      | `outdated_warning` present   | Analyzed with algorithm version `1.0.0` — triggers `outdated_warning` in the result            |
+
+### Error Triggers
+
+Use these to test error-handling paths. Unlike mock result URLs, these return an error response from `POST /analyze` directly — they have no check ID and cannot be used with `GET /result/{id}`.
+
+| URL                                              | HTTP Status | `code`             | Notes                                                                                                            |
+| ------------------------------------------------ | ----------- | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/trigger-402.pdf` | `402`       | `payment_required` | Simulates no active subscription. Only testable via this trigger — test keys bypass the real subscription check. |
+
 ---
 
 ## What to Test
@@ -201,21 +251,21 @@ Use these to test how your application handles severe tampering alerts.
 Verify that your integration correctly handles the two-step flow.
 
 ```bash
-# Step 1: Submit for analysis — returns a synthetic ID
+# Step 1: Submit for analysis — returns a synthetic UUID
 curl -s -X POST https://htpbe.tech/api/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}'
-# → { "id": "TEST_CLEAN" }
+# → { "id": "00000000-0000-4000-8000-000000000001" }
 
 # Step 2: Retrieve the full result using the synthetic ID
-curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" | jq .
 ```
 
 **What to verify:**
 
-- `POST /analyze` returns `{ "id": "TEST_CLEAN" }` — no analysis data
+- `POST /analyze` returns `{ "id": "00000000-0000-4000-8000-000000000001" }` — no analysis data
 - `status` is `"intact"`
 - `specific_findings` is an empty array `[]`
 - `creation_date` is non-null
@@ -229,24 +279,24 @@ The API returns three possible `status` values. Since IDs are deterministic, you
 
 ```bash
 # intact
-curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status'
 # → "intact"
 
 # modified
-curl -s https://htpbe.tech/api/v1/result/TEST_MODIFIED_HIGH \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000005 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status'
 # → "modified"
 
 # inconclusive
-curl -s https://htpbe.tech/api/v1/result/TEST_INCONCLUSIVE \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000011 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status, .status_reason, .origin'
 # → "inconclusive"
 # → "consumer_software_origin"
-# → { "type": "consumer_software", "software": "Microsoft Excel", "warning": "..." }
+# → { "type": "consumer_software", "software": "Microsoft Excel" }
 ```
 
 ---
@@ -255,13 +305,13 @@ curl -s https://htpbe.tech/api/v1/result/TEST_INCONCLUSIVE \
 
 Test how your code handles each severity level:
 
-| Severity | Test URL                                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------------------------ |
-| None     | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                   |
-| Minor    | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                            |
-| Moderate | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/multiple-xref.pdf`      |
-| High     | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf` |
-| Critical | `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf`    |
+| Severity | Test URL                                                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| None     | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                                                                     |
+| Minor    | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                                                                              |
+| Moderate | `https://htpbe.tech/api/v1/test/multiple-xref.pdf`                                                                                                             |
+| High     | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf`                                                   |
+| Critical | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf` |
 
 ---
 
@@ -269,7 +319,7 @@ Test how your code handles each severity level:
 
 ```bash
 # Valid signature — should not trigger alerts
-curl -s https://htpbe.tech/api/v1/result/TEST_SIGNATURE_VALID \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-00000000000b \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{has_digital_signature, signature_count, signature_removed, modifications_after_signature}'
 ```
@@ -287,7 +337,7 @@ Expected:
 
 ```bash
 # Removed signature — critical alert
-curl -s https://htpbe.tech/api/v1/result/TEST_SIGNATURE_REMOVED \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-00000000000c \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{has_digital_signature, signature_count, signature_removed, modifications_after_signature}'
 ```
@@ -310,7 +360,7 @@ Expected:
 Test that your UI handles JavaScript and embedded file warnings:
 
 ```bash
-curl -s https://htpbe.tech/api/v1/result/TEST_BOTH_THREATS \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000010 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{has_javascript, has_embedded_files, specific_findings}'
 ```
@@ -338,7 +388,7 @@ Expected:
 Not all PDFs contain full metadata. Verify your application handles null values gracefully:
 
 ```bash
-curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN_NO_DATES \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000002 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{creation_date, modification_date, creator, producer}'
 ```
@@ -349,8 +399,8 @@ Expected:
 {
   "creation_date": null,
   "modification_date": null,
-  "creator": "Unknown",
-  "producer": "Unknown"
+  "creator": null,
+  "producer": null
 }
 ```
 
@@ -372,9 +422,24 @@ Expected HTTP status: `403`
 ```json
 {
   "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
+  "code": "test_url_required",
   "details": "Use URLs like: https://htpbe.tech/api/v1/test/clean.pdf, https://htpbe.tech/api/v1/test/modified-high.pdf, etc."
 }
 ```
+
+---
+
+## Known Test Key Limitations
+
+Some error codes and edge cases cannot be triggered by the normal test mock flow but have dedicated workarounds:
+
+| Scenario                             | How to test                                                                                                                                                        |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `402 payment_required`               | Use `https://htpbe.tech/api/v1/test/trigger-402.pdf` — test keys skip the real subscription check, so this is the only way to reach this code path with a test key |
+| `403 inactive_client`                | Cannot be triggered with a test key. Test using a live key on a deactivated account (contact support)                                                              |
+| `outdated_warning` field             | Use `https://htpbe.tech/api/v1/test/outdated-version.pdf` — this mock returns `algorithm_version: "1.0.0"`, which triggers `outdated_warning` in the response      |
+| `date_sequence_valid: false`         | Use `https://htpbe.tech/api/v1/test/date-sequence-invalid.pdf` — modification date is set before creation date                                                     |
+| `metadata_completeness_score` ranges | Test mocks return a variety of scores (0–80). See the `metadata_completeness_score` column in the full response reference below for per-mock values                |
 
 ---
 
@@ -402,7 +467,7 @@ async function analyzeAndGetResult(filename: string) {
     throw new Error(`Analyze error ${analyzeRes.status}: ${error.error}`);
   }
 
-  const { id } = await analyzeRes.json(); // e.g. "TEST_CLEAN"
+  const { id } = await analyzeRes.json(); // e.g. "00000000-0000-4000-8000-000000000001"
 
   // Step 2: Retrieve the full result
   const resultRes = await fetch(`${BASE_URL}/result/${id}`, {
@@ -431,7 +496,7 @@ console.assert(inconclusive.status_reason === 'consumer_software_origin');
 console.assert(inconclusive.origin.type === 'consumer_software');
 
 // Since IDs are deterministic you can skip POST and call GET directly:
-const result = await fetch(`${BASE_URL}/result/TEST_CLEAN`, {
+const result = await fetch(`${BASE_URL}/result/00000000-0000-4000-8000-000000000001`, {
   headers: { Authorization: `Bearer ${TEST_KEY}` },
 }).then((r) => r.json());
 console.assert(result.status === 'intact');
@@ -457,7 +522,7 @@ def analyze_and_get_result(filename: str) -> dict:
         json={"url": f"{BASE_URL}/test/{filename}"},
     )
     analyze_res.raise_for_status()
-    check_id = analyze_res.json()["id"]  # e.g. "TEST_CLEAN"
+    check_id = analyze_res.json()["id"]  # e.g. "00000000-0000-4000-8000-000000000001"
 
     # Step 2: Retrieve the full result
     result_res = requests.get(
@@ -491,20 +556,24 @@ assert result["origin"]["software"] == "Microsoft Excel"
 
 ```json
 {
-  "error": "Test API keys can only be used with test URLs. See documentation for available test URLs."
+  "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
+  "code": "test_url_required"
 }
 ```
 
-**Fix:** Use one of the 17 URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
+**Fix:** Use one of the 19 URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
 
 ---
 
-### Passing a `TEST_*` ID with a live key
+### Passing a synthetic test ID with a live key
 
-Synthetic check IDs (`TEST_*`) are only accessible with a test key. Calling `GET /api/v1/result/TEST_CLEAN` with a live key returns 404:
+Synthetic check IDs are only accessible with a test key. Calling `GET /api/v1/result/00000000-0000-4000-8000-000000000001` with a live key returns 404:
 
 ```json
-{ "error": "Check not found or access denied" }
+{
+  "error": "Check not found or access denied",
+  "code": "not_found"
+}
 ```
 
 **Fix:** Use your test key when retrieving synthetic test results. Keep test and live keys in separate environments.
@@ -521,17 +590,16 @@ Live keys download and analyze the URL as a real file. Passing `https://htpbe.te
 
 ### Expecting `verdict_reasoning` to always be present
 
-The `verdict_reasoning` field is `undefined` (omitted) when no single dominant reason was identified. Several test fixtures omit it:
+The `verdict_reasoning` field is `null` when no single dominant reason was identified. Several test fixtures return it as `null`:
 
 ```bash
-curl -s https://htpbe.tech/api/v1/result/TEST_CLEAN \
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  | jq 'has("verdict_reasoning")'
+  | jq '.verdict_reasoning'
+# → null
 ```
 
-**Fix:** Always use optional chaining or null checks: `result.verdict_reasoning ?? ""`.
-
----
+**Fix:** Always use null checks: `result.verdict_reasoning ?? ""`.
 
 ---
 
@@ -541,7 +609,7 @@ Use this list before switching from test to live keys:
 
 - [ ] Application handles `status: "intact"` (original document)
 - [ ] Application handles `status: "modified"` at low, medium, and high risk
-- [ ] Application handles `status: "inconclusive"` with `origin.warning` displayed to the user
+- [ ] Application handles `status: "inconclusive"` with `origin.software` displayed to the user
 - [ ] UI displays `specific_findings` array items clearly
 - [ ] Code handles `null` values in `creation_date` and `modification_date`
 - [ ] Code handles missing `verdict_reasoning` field
@@ -556,13 +624,22 @@ Use this list before switching from test to live keys:
 
 Every test URL returns a deterministic result accessible via `GET /api/v1/result/{id}`. Results are not saved to the database — synthetic results are generated on the fly and are accessible at any time with a test key.
 
-The field values below show what each fixture returns. Fields are grouped by category for readability; in the actual `GET /result/{id}` response, all fields are at the top level — see [GET /result](./api/result.md) for the complete flat schema. Date fields (`creation_date`, `modification_date`) are Unix timestamps (seconds since epoch).
+The field values below show what each fixture returns. The JSON is formatted with nested groupings for readability — **this nesting does not exist in the real API response**. The actual `GET /result/{id}` response is a flat object with all fields at the top level.
+
+**Formatting differences between the tables below and the real API response:**
+
+- `metadata`, `structure`, `signatures`, `threats` — these groupings are display-only. In the real response, all fields (`creator`, `has_incremental_updates`, `has_digital_signature`, etc.) are at the top level.
+- Date fields (`creation_date`, `modification_date`) — shown as ISO 8601 strings below for readability. The real response returns **Unix timestamps** (integer, seconds since epoch), e.g. `1704067200`.
+- Additional fields present in the real response but omitted here for brevity: `check_date`, `algorithm_version`, `current_algorithm_version`, `date_sequence_valid`, `metadata_completeness_score`.
+
+See [GET /result](./api/result.md) for the complete flat schema with exact field types.
 
 ---
 
 ### `clean.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/clean.pdf`
+**ID:** `00000000-0000-4000-8000-000000000001`
 
 Original document, no modifications.
 
@@ -570,7 +647,7 @@ Original document, no modifications.
 {
   "status": "intact",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
     "modification_date": null,
@@ -600,6 +677,7 @@ Original document, no modifications.
 ### `clean-no-dates.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`
+**ID:** `00000000-0000-4000-8000-000000000002`
 
 Original document, metadata dates absent (common in auto-generated PDFs).
 
@@ -607,12 +685,12 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 {
   "status": "intact",
 
-  "origin": { "type": "unknown", "software": null, "warning": null },
+  "origin": { "type": "unknown", "software": null },
   "metadata": {
     "creation_date": null,
     "modification_date": null,
-    "creator": "Unknown",
-    "producer": "Unknown",
+    "creator": null,
+    "producer": null,
     "file_size": 102400
   },
   "structure": {
@@ -637,6 +715,7 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 ### `dates-same.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/dates-same.pdf`
+**ID:** `00000000-0000-4000-8000-000000000008`
 
 LibreOffice origin — integrity check not applicable.
 
@@ -647,8 +726,7 @@ LibreOffice origin — integrity check not applicable.
 
   "origin": {
     "type": "consumer_software",
-    "software": "LibreOffice",
-    "warning": "This document was created with consumer software (LibreOffice). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+    "software": "LibreOffice"
   },
   "metadata": {
     "creation_date": "2024-03-01T12:00:00.000Z",
@@ -679,6 +757,7 @@ LibreOffice origin — integrity check not applicable.
 ### `inconclusive.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/inconclusive.pdf`
+**ID:** `00000000-0000-4000-8000-000000000011`
 
 Microsoft Excel origin — integrity check not applicable.
 
@@ -689,8 +768,7 @@ Microsoft Excel origin — integrity check not applicable.
 
   "origin": {
     "type": "consumer_software",
-    "software": "Microsoft Excel",
-    "warning": "This document was created with consumer software (Microsoft Excel). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
+    "software": "Microsoft Excel"
   },
   "metadata": {
     "creation_date": "2024-03-01T09:00:00.000Z",
@@ -721,6 +799,7 @@ Microsoft Excel origin — integrity check not applicable.
 ### `signature-valid.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/signature-valid.pdf`
+**ID:** `00000000-0000-4000-8000-00000000000b`
 
 Digitally signed, no post-sign modifications.
 
@@ -728,7 +807,7 @@ Digitally signed, no post-sign modifications.
 {
   "status": "intact",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-03-05T10:00:00.000Z",
     "modification_date": null,
@@ -758,6 +837,7 @@ Digitally signed, no post-sign modifications.
 ### `dates-mismatch.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`
+**ID:** `00000000-0000-4000-8000-000000000007`
 
 Modification date 14 days after creation date.
 
@@ -765,7 +845,7 @@ Modification date 14 days after creation date.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-02-01T10:00:00.000Z",
     "modification_date": "2024-02-15T14:30:00.000Z",
@@ -795,6 +875,7 @@ Modification date 14 days after creation date.
 ### `modified-low.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/modified-low.pdf`
+**ID:** `00000000-0000-4000-8000-000000000003`
 
 Minor modification — one incremental update.
 
@@ -802,7 +883,7 @@ Minor modification — one incremental update.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-01-15T10:00:00.000Z",
     "modification_date": "2024-01-15T11:30:00.000Z",
@@ -835,6 +916,7 @@ Minor modification — one incremental update.
 ### `modified-medium.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/modified-medium.pdf`
+**ID:** `00000000-0000-4000-8000-000000000004`
 
 Moderate modification — creator/producer mismatch.
 
@@ -842,11 +924,7 @@ Moderate modification — creator/producer mismatch.
 {
   "status": "modified",
 
-  "origin": {
-    "type": "consumer_software",
-    "software": "Microsoft Word",
-    "warning": "This document was created with consumer software (Microsoft Word). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
-  },
+  "origin": { "type": "consumer_software", "software": "Microsoft Word" },
   "metadata": {
     "creation_date": "2024-01-10T08:00:00.000Z",
     "modification_date": "2024-02-05T14:20:00.000Z",
@@ -880,6 +958,7 @@ Moderate modification — creator/producer mismatch.
 ### `multiple-xref.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/multiple-xref.pdf`
+**ID:** `00000000-0000-4000-8000-00000000000a`
 
 4 cross-reference tables detected.
 
@@ -887,7 +966,7 @@ Moderate modification — creator/producer mismatch.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-02-10T11:00:00.000Z",
     "modification_date": "2024-02-11T09:00:00.000Z",
@@ -920,6 +999,7 @@ Moderate modification — creator/producer mismatch.
 ### `incremental-updates.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/incremental-updates.pdf`
+**ID:** `00000000-0000-4000-8000-000000000009`
 
 6 incremental update sections.
 
@@ -927,7 +1007,7 @@ Moderate modification — creator/producer mismatch.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-01-20T09:00:00.000Z",
     "modification_date": "2024-01-20T15:00:00.000Z",
@@ -960,6 +1040,7 @@ Moderate modification — creator/producer mismatch.
 ### `embedded-files.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/embedded-files.pdf`
+**ID:** `00000000-0000-4000-8000-00000000000f`
 
 Embedded file attachments added after creation.
 
@@ -967,7 +1048,7 @@ Embedded file attachments added after creation.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-03-12T14:00:00.000Z",
     "modification_date": "2024-03-12T15:30:00.000Z",
@@ -997,6 +1078,7 @@ Embedded file attachments added after creation.
 ### `javascript.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/javascript.pdf`
+**ID:** `00000000-0000-4000-8000-00000000000e`
 
 JavaScript code embedded in the PDF.
 
@@ -1004,7 +1086,7 @@ JavaScript code embedded in the PDF.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-03-10T10:00:00.000Z",
     "modification_date": "2024-03-10T11:00:00.000Z",
@@ -1034,6 +1116,7 @@ JavaScript code embedded in the PDF.
 ### `modified-high.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/modified-high.pdf`
+**ID:** `00000000-0000-4000-8000-000000000005`
 
 Significant modification — multiple saves, tool changed to PDFtk.
 
@@ -1041,7 +1124,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-01-01T00:00:00.000Z",
     "modification_date": "2024-03-15T18:45:00.000Z",
@@ -1076,6 +1159,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
 ### `modified-after-sign.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/modified-after-sign.pdf`
+**ID:** `00000000-0000-4000-8000-00000000000d`
 
 Modified after digital signing — signature is now invalidated.
 
@@ -1083,7 +1167,7 @@ Modified after digital signing — signature is now invalidated.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-02-01T09:00:00.000Z",
     "modification_date": "2024-02-10T14:00:00.000Z",
@@ -1117,6 +1201,7 @@ Modified after digital signing — signature is now invalidated.
 ### `signature-removed.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/signature-removed.pdf`
+**ID:** `00000000-0000-4000-8000-00000000000c`
 
 Digital signature was removed from the document.
 
@@ -1124,7 +1209,7 @@ Digital signature was removed from the document.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-01-10T10:00:00.000Z",
     "modification_date": "2024-02-20T16:30:00.000Z",
@@ -1145,7 +1230,10 @@ Digital signature was removed from the document.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": ["CRITICAL: Digital signature was removed", "Document integrity compromised"]
+  "specific_findings": [
+    "Digital signature removed (critical tampering)",
+    "Document integrity compromised"
+  ]
 }
 ```
 
@@ -1154,6 +1242,7 @@ Digital signature was removed from the document.
 ### `modified-critical.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/modified-critical.pdf`
+**ID:** `00000000-0000-4000-8000-000000000006`
 
 Signature removed + JavaScript detected + 8-step modification chain.
 
@@ -1161,11 +1250,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
 {
   "status": "modified",
 
-  "origin": {
-    "type": "consumer_software",
-    "software": "Microsoft Excel",
-    "warning": "This document was created with consumer software (Microsoft Excel). Official institutional documents (bank statements, government certificates, pay stubs) are typically generated by dedicated systems. This check cannot verify the authenticity of documents created with office software."
-  },
+  "origin": { "type": "consumer_software", "software": "Microsoft Excel" },
   "metadata": {
     "creation_date": "2023-12-01T10:00:00.000Z",
     "modification_date": "2024-04-01T22:15:00.000Z",
@@ -1202,6 +1287,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
 ### `both-threats.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/both-threats.pdf`
+**ID:** `00000000-0000-4000-8000-000000000010`
 
 JavaScript + embedded files + signature removed. Maximum severity.
 
@@ -1209,11 +1295,11 @@ JavaScript + embedded files + signature removed. Maximum severity.
 {
   "status": "modified",
 
-  "origin": { "type": "institutional", "software": null, "warning": null },
+  "origin": { "type": "institutional", "software": null },
   "metadata": {
     "creation_date": "2024-02-15T10:00:00.000Z",
     "modification_date": "2024-03-01T16:00:00.000Z",
-    "creator": "Unknown",
+    "creator": null,
     "producer": "iText 5.5.13",
     "file_size": 3100000
   },
@@ -1245,5 +1331,5 @@ JavaScript + embedded files + signature removed. Maximum severity.
 ## Related
 
 - [POST /api/v1/analyze](./api/analyze.md) — Full request/response reference
-- [GET /api/v1/result/{uid}](./api/result.md) — Retrieve analysis results (live key and test key)
+- [GET /api/v1/result/{id}](./api/result.md) — Retrieve analysis results (live key and test key)
 - [GET /api/v1/checks](./api/checks.md) — List all checks with filtering

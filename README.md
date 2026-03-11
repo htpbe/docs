@@ -4,8 +4,8 @@
 
 Submit a PDF URL → get a verdict: **`intact`**, **`modified`**, or **`inconclusive`**.
 
-🌐 Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
-🔌 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
+Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
+API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
 
 ---
 
@@ -46,22 +46,18 @@ REST API for automated document verification workflows.
 
 **Base URL:** `https://htpbe.tech/api/v1`
 **Auth:** `Authorization: Bearer YOUR_API_KEY`
-**OpenAPI spec:** [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml)
 
-Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All paid plans include a 14-day free trial and test keys for development.
+Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All plans include test API keys for development. The web interface is free and unlimited for evaluating quality.
 
-**Two-step flow:** `POST /analyze` triggers analysis synchronously and returns only `{ "id": "..." }`. Call `GET /result/{id}` immediately after to retrieve the full verdict and metadata.
-
-**Identifiers:** `POST /analyze` returns a full UUID (`id`) used with `GET /result/{id}`. The `GET /checks` list returns a short 8-character display field (`uid`) — this short `uid` cannot be passed to `GET /result/{id}`.
+**Two-step flow:** `POST /analyze` triggers analysis synchronously and returns only `{ "id": "..." }`. Call `GET /result/{id}` immediately after to retrieve the full verdict and metadata. The same `id` is also returned in the `GET /checks` list, so you can pass any check's `id` directly to `GET /result/{id}`.
 
 ### Endpoints
 
-| Method | Path           | Description                             |
-| ------ | -------------- | --------------------------------------- |
-| `POST` | `/analyze`     | Submit a PDF URL for analysis           |
-| `GET`  | `/result/{id}` | Retrieve a past result by ID            |
-| `GET`  | `/checks`      | Paginated list of all your checks       |
-| `GET`  | `/stats`       | Aggregate statistics across your checks |
+| Method | Path           | Description                   |
+| ------ | -------------- | ----------------------------- |
+| `POST` | `/analyze`     | Submit a PDF URL for analysis |
+| `GET`  | `/result/{id}` | Retrieve a past result by ID  |
+| `GET`  | `/checks`      | Paginated list of all checks  |
 
 ---
 
@@ -100,13 +96,6 @@ curl "https://htpbe.tech/api/v1/checks?limit=20&status=modified" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
-### Get statistics
-
-```bash
-curl https://htpbe.tech/api/v1/stats \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
 ### Test without a real PDF
 
 Test keys (`htpbe_test_...`) work with mock URLs at no cost:
@@ -126,6 +115,7 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 - `.../test/modified-critical.pdf` — Modified, signature removed + JS detected
 - `.../test/signature-removed.pdf` — Modified, digital signature removed
 - `.../test/both-threats.pdf` — Modified, JS + embedded files + signature removed
+- `.../test/inconclusive.pdf` — Inconclusive, consumer software origin (Microsoft Excel)
 
 ---
 
@@ -138,7 +128,7 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 | **Pro**        | $499/mo | 1,500          | $0.33       | $0.40/req    |
 | **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 | Included     |
 
-All plans: 14-day free trial · test API keys included · monthly billing only
+All plans include test API keys. Monthly billing only. Requests beyond the monthly quota are charged at the overage rate and billed automatically at the end of the billing cycle — no hard cutoff.
 
 ---
 
@@ -185,7 +175,7 @@ Human-readable version: [htpbe.tech/for-ai](https://htpbe.tech/for-ai)
 
 ## Contact
 
-**Iurii Rogulia** — Founder
-📧 iurii@rogulia.fi
-🌐 [htpbe.tech](https://htpbe.tech)
-📍 Lappeenranta, Finland
+**Iurii Rogulia** -- Founder
+Email: iurii@rogulia.fi
+Web: [htpbe.tech](https://htpbe.tech)
+Location: Lappeenranta, Finland
