@@ -50,8 +50,8 @@ const response = await fetch('https://htpbe.tech/api/v1/stats', {
 });
 
 const stats = await response.json();
-console.log(`Total checks: ${stats.totalChecks}`);
-console.log(`Modified files: ${stats.editedFiles}`);
+console.log(`Total checks: ${stats.total_checks}`);
+console.log(`Modified files: ${stats.modified_checks}`);
 ```
 
 ```python
@@ -67,8 +67,8 @@ response = requests.get(
 )
 
 stats = response.json()
-print(f"Total checks: {stats['totalChecks']}")
-print(f"Modified files: {stats['editedFiles']}")
+print(f"Total checks: {stats['total_checks']}")
+print(f"Modified files: {stats['modified_checks']}")
 ```
 
 ---
@@ -84,36 +84,36 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 ```typescript
 {
   // Basic Metrics
-  totalChecks: number;
-  editedFiles: number;
-  mostUsedProducer: string | undefined;
-  mostUsedCreator: string | undefined;
-  oldestCreationDate: number | undefined;
-  topProducers: Array<{ producer: string; count: number }>;
-  topCreators: Array<{ creator: string; count: number }>;
+  total_checks: number;
+  modified_checks: number;
+  most_used_producer: string | undefined;
+  most_used_creator: string | undefined;
+  oldest_creation_date: number | undefined;
+  top_producers: Array<{ producer: string; count: number }>;
+  top_creators: Array<{ creator: string; count: number }>;
 
   // Advanced Metrics
-  totalPages: number;
-  avgAgeSeconds: number;
-  jsFiles: number;
-  signedButModified: number;
-  maxPages: number;
-  maxFileSize: number;
-  maxUpdateChain: number;
-  noCreationDate: number;
-  versionDistribution: Array<{ version: string; count: number }>;
-  totalObjects: number;
-  embeddedFiles: number;
-  incrementalUpdates: number;
-  avgMetadataScore: number;
-  signedFiles: number;
-  monthlyModificationStats: Array<{
+  total_pages: number;
+  avg_age_seconds: number;
+  js_files: number;
+  signed_but_modified: number;
+  max_pages: number;
+  max_file_size: number;
+  max_update_chain: number;
+  no_creation_date: number;
+  version_distribution: Array<{ version: string; count: number }>;
+  total_objects: number;
+  embedded_files: number;
+  incremental_updates: number;
+  avg_metadata_score: number;
+  signed_files: number;
+  monthly_modification_stats: Array<{
     month: number;
-    totalCount: number;
-    modifiedCount: number;
+    total_count: number;
+    modified_count: number;
   }>;
-  newestCreationDate: number | undefined;
-  totalFileSize: number;
+  newest_creation_date: number | undefined;
+  total_file_size: number;
 }
 ```
 
@@ -121,7 +121,7 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 
 #### Basic Metrics
 
-##### `totalChecks`
+##### `total_checks`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
@@ -130,17 +130,17 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Example:** `1250` = 1,250 PDFs analyzed
 - **Usage:** Your primary usage metric. Compare against your plan quota to track consumption.
 
-##### `editedFiles`
+##### `modified_checks`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
-- **Description:** Number of PDFs that were detected as modified (`status: "modified"`)
+- **Range:** `0` to `total_checks`
+- **Description:** Number of PDFs detected as modified (`status: "modified"`, excluding `inconclusive`)
 - **Example:** `487` out of 1250 checks
-- **Calculate Percentage:** `(editedFiles / totalChecks) * 100` = modification rate
+- **Calculate Percentage:** `(modified_checks / total_checks) * 100` = modification rate
 - **Insight:** If this percentage is high (>40%), many of your documents are being modified
 
-##### `mostUsedProducer`
+##### `most_used_producer`
 
 - **Type:** `string | undefined`
 - **Can Be Undefined:** Yes (if no PDFs have producer metadata)
@@ -152,7 +152,7 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   - `undefined` - No producer metadata found in any PDF
 - **Usage:** Understand what tools your users/systems are primarily using to generate PDFs
 
-##### `mostUsedCreator`
+##### `most_used_creator`
 
 - **Type:** `string | undefined`
 - **Can Be Undefined:** Yes (if no PDFs have creator metadata)
@@ -164,16 +164,16 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   - `undefined` - No creator metadata found
 - **Usage:** Understand what applications users are creating documents with before PDF conversion
 
-##### `oldestCreationDate`
+##### `oldest_creation_date`
 
 - **Type:** `number | undefined` (Unix timestamp in seconds)
 - **Can Be Undefined:** Yes (if no PDFs have creation dates)
 - **Description:** Unix timestamp of the oldest PDF creation date in your collection
 - **Example:** `1577836800` = January 1, 2020, 00:00:00 UTC
-- **Convert:** JavaScript: `new Date(oldestCreationDate * 1000).toISOString()`
+- **Convert:** JavaScript: `new Date(oldest_creation_date * 1000).toISOString()`
 - **Usage:** Understand the age range of documents you're analyzing
 
-##### `topProducers`
+##### `top_producers`
 
 - **Type:** `Array<{ producer: string; count: number }>` (array of objects)
 - **Always Present:** Yes (can be empty array)
@@ -190,7 +190,7 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   ```
 - **Usage:** Detailed breakdown of PDF generation tools in your ecosystem
 
-##### `topCreators`
+##### `top_creators`
 
 - **Type:** `Array<{ creator: string; count: number }>` (array of objects)
 - **Always Present:** Yes (can be empty array)
@@ -210,7 +210,7 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 
 #### Advanced Metrics
 
-##### `totalPages`
+##### `total_pages`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
@@ -218,9 +218,9 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Description:** Sum of page counts across all analyzed PDFs
 - **Example:** `45230` = total of 45,230 pages across all documents
 - **Usage:** Understand total document volume
-- **Calculate Average:** `totalPages / totalChecks` = average pages per document
+- **Calculate Average:** `total_pages / total_checks` = average pages per document
 
-##### `avgAgeSeconds`
+##### `avg_age_seconds`
 
 - **Type:** `number` (integer, seconds)
 - **Always Present:** Yes
@@ -228,31 +228,31 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Description:** Average age of PDFs in seconds (calculated as `check_date - creation_date`)
 - **Zero When:** No PDFs have valid creation dates
 - **Example:** `7776000` = 90 days (2,160 hours)
-- **Convert to Days:** `avgAgeSeconds / 86400`
-- **Convert to Hours:** `avgAgeSeconds / 3600`
+- **Convert to Days:** `avg_age_seconds / 86400`
+- **Convert to Hours:** `avg_age_seconds / 3600`
 - **Usage:** Understand how old documents are when they're being checked
 
-##### `jsFiles`
+##### `js_files`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
+- **Range:** `0` to `total_checks`
 - **Description:** Number of PDFs containing embedded JavaScript code
 - **Example:** `12` out of 1250 = 0.96% contain JavaScript
 - **Security Note:** High numbers may indicate security risks
-- **Percentage:** `(jsFiles / totalChecks) * 100`
+- **Percentage:** `(js_files / total_checks) * 100`
 
-##### `signedButModified`
+##### `signed_but_modified`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
+- **Range:** `0` to `total_checks`
 - **Description:** Number of PDFs that were digitally signed but then modified afterward
 - **Critical Indicator:** These are high-risk tampering cases where signatures were invalidated
 - **Example:** `34` documents were signed then modified
 - **Usage:** Monitor for fraudulent document modification
 
-##### `maxPages`
+##### `max_pages`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
@@ -262,17 +262,17 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Zero When:** No PDFs have page count data
 - **Usage:** Identify unusually large documents
 
-##### `maxFileSize`
+##### `max_file_size`
 
 - **Type:** `number` (integer, bytes)
 - **Always Present:** Yes
 - **Range:** `0` to `10485760` (10 MB API limit)
 - **Description:** Maximum file size encountered in bytes
 - **Example:** `9437184` = ~9 MB
-- **Convert to MB:** `maxFileSize / 1024 / 1024`
+- **Convert to MB:** `max_file_size / 1024 / 1024`
 - **Usage:** Understand file size distribution
 
-##### `maxUpdateChain`
+##### `max_update_chain`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
@@ -281,17 +281,17 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **Example:** `12` = one PDF was edited and saved 12 times
 - **Usage:** Identify heavily modified documents
 
-##### `noCreationDate`
+##### `no_creation_date`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
+- **Range:** `0` to `total_checks`
 - **Description:** Number of PDFs without creation date metadata
 - **Example:** `45` = 3.6% of documents lack creation dates
 - **Impact:** PDFs without dates are harder to verify for modifications
-- **Percentage:** `(noCreationDate / totalChecks) * 100`
+- **Percentage:** `(no_creation_date / total_checks) * 100`
 
-##### `versionDistribution`
+##### `version_distribution`
 
 - **Type:** `Array<{ version: string; count: number }>` (array of objects)
 - **Always Present:** Yes (can be empty array)
@@ -313,7 +313,7 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   - `"2.0"` - Modern ISO standard
 - **Usage:** Understand technology stack age
 
-##### `totalObjects`
+##### `total_objects`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
@@ -323,27 +323,27 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 - **What Are Objects:** Pages, fonts, images, annotations, forms, etc.
 - **Usage:** Measure total structural complexity
 
-##### `embeddedFiles`
+##### `embedded_files`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
+- **Range:** `0` to `total_checks`
 - **Description:** Number of PDFs containing embedded file attachments
 - **Example:** `23` = 1.8% of documents have attachments
 - **Security Risk:** Attachments can hide malware
-- **Percentage:** `(embeddedFiles / totalChecks) * 100`
+- **Percentage:** `(embedded_files / total_checks) * 100`
 
-##### `incrementalUpdates`
+##### `incremental_updates`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
+- **Range:** `0` to `total_checks`
 - **Description:** Number of PDFs with incremental update structures (been saved multiple times)
 - **Example:** `623` = 49.8% have incremental updates
 - **Note:** Not always malicious - many legitimate workflows create incremental updates
-- **Percentage:** `(incrementalUpdates / totalChecks) * 100`
+- **Percentage:** `(incremental_updates / total_checks) * 100`
 
-##### `avgMetadataScore`
+##### `avg_metadata_score`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
@@ -357,56 +357,56 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
   - `30-49` - Limited metadata (harder to verify)
   - `0-29` - Poor metadata quality
 
-##### `signedFiles`
+##### `signed_files`
 
 - **Type:** `number` (integer)
 - **Always Present:** Yes
-- **Range:** `0` to `totalChecks`
+- **Range:** `0` to `total_checks`
 - **Description:** Number of PDFs that currently contain digital signatures
 - **Example:** `234` = 18.7% are digitally signed
 - **Note:** This doesn't include signatures that were removed
 - **Usage:** Understand adoption of digital signatures in your document workflow
-- **Compare with:** `signedButModified` to find signature invalidation rate
+- **Compare with:** `signed_but_modified` to find signature invalidation rate
 
-##### `monthlyModificationStats`
+##### `monthly_modification_stats`
 
-- **Type:** `Array<{ month: number; totalCount: number; modifiedCount: number }>` (array of objects)
+- **Type:** `Array<{ month: number; total_count: number; modified_count: number }>` (array of objects)
 - **Always Present:** Yes (can be empty array)
 - **Max Length:** 12 items (one per month)
 - **Description:** Monthly breakdown of document modifications by modification date
 - **Empty When:** No PDFs have modification dates
 - **Field Details:**
   - `month` - Month number (1-12, January-December)
-  - `totalCount` - Total PDFs modified in that month
-  - `modifiedCount` - How many of those were detected as edited
+  - `total_count` - Total PDFs modified in that month
+  - `modified_count` - How many of those were detected as edited
 - **Example:**
   ```json
   [
-    { "month": 1, "totalCount": 100, "modifiedCount": 38 },
-    { "month": 2, "totalCount": 95, "modifiedCount": 41 },
-    { "month": 3, "totalCount": 110, "modifiedCount": 45 }
+    { "month": 1, "total_count": 100, "modified_count": 38 },
+    { "month": 2, "total_count": 95, "modified_count": 41 },
+    { "month": 3, "total_count": 110, "modified_count": 45 }
   ]
   ```
 - **Usage:** Track seasonal patterns or trends in document modification
 
-##### `newestCreationDate`
+##### `newest_creation_date`
 
 - **Type:** `number | undefined` (Unix timestamp in seconds)
 - **Can Be Undefined:** Yes (if no PDFs have creation dates)
 - **Description:** Unix timestamp of the newest PDF creation date
 - **Example:** `1735689600` = January 1, 2025, 00:00:00 UTC
-- **Convert:** JavaScript: `new Date(newestCreationDate * 1000).toISOString()`
-- **Usage:** Combined with `oldestCreationDate`, shows the time span of your document collection
+- **Convert:** JavaScript: `new Date(newest_creation_date * 1000).toISOString()`
+- **Usage:** Combined with `oldest_creation_date`, shows the time span of your document collection
 
-##### `totalFileSize`
+##### `total_file_size`
 
 - **Type:** `number` (integer, bytes)
 - **Always Present:** Yes
 - **Range:** `0` and higher
 - **Description:** Sum of all file sizes across all checks
 - **Example:** `1250000000` = 1.25 GB total
-- **Convert to GB:** `totalFileSize / 1024 / 1024 / 1024`
-- **Convert to MB:** `totalFileSize / 1024 / 1024`
+- **Convert to GB:** `total_file_size / 1024 / 1024 / 1024`
+- **Convert to MB:** `total_file_size / 1024 / 1024`
 - **Usage:** Understand total storage requirements or data volume
 
 ---
@@ -415,47 +415,47 @@ Returns a `StatsResponse` object with comprehensive statistics about all your PD
 
 ```json
 {
-  "totalChecks": 1250,
-  "editedFiles": 487,
-  "mostUsedProducer": "Adobe PDF Library 15.0",
-  "mostUsedCreator": "Microsoft Word for Microsoft 365",
-  "oldestCreationDate": 1577836800,
-  "topProducers": [
+  "total_checks": 1250,
+  "modified_checks": 487,
+  "most_used_producer": "Adobe PDF Library 15.0",
+  "most_used_creator": "Microsoft Word for Microsoft 365",
+  "oldest_creation_date": 1577836800,
+  "top_producers": [
     { "producer": "Adobe PDF Library 15.0", "count": 450 },
     { "producer": "PDFKit", "count": 230 },
     { "producer": "iText 7.0.0", "count": 180 }
   ],
-  "topCreators": [
+  "top_creators": [
     { "creator": "Microsoft Word for Microsoft 365", "count": 520 },
     { "creator": "Adobe InDesign CC", "count": 180 },
     { "creator": "Google Docs", "count": 95 }
   ],
-  "totalPages": 45230,
-  "avgAgeSeconds": 7776000,
-  "jsFiles": 12,
-  "signedButModified": 34,
-  "maxPages": 450,
-  "maxFileSize": 9437184,
-  "maxUpdateChain": 12,
-  "noCreationDate": 45,
-  "versionDistribution": [
+  "total_pages": 45230,
+  "avg_age_seconds": 7776000,
+  "js_files": 12,
+  "signed_but_modified": 34,
+  "max_pages": 450,
+  "max_file_size": 9437184,
+  "max_update_chain": 12,
+  "no_creation_date": 45,
+  "version_distribution": [
     { "version": "1.7", "count": 890 },
     { "version": "1.4", "count": 250 },
     { "version": "1.5", "count": 85 },
     { "version": "2.0", "count": 25 }
   ],
-  "totalObjects": 567890,
-  "embeddedFiles": 23,
-  "incrementalUpdates": 623,
-  "avgMetadataScore": 78,
-  "signedFiles": 234,
-  "monthlyModificationStats": [
-    { "month": 1, "totalCount": 100, "modifiedCount": 38 },
-    { "month": 2, "totalCount": 95, "modifiedCount": 41 },
-    { "month": 3, "totalCount": 110, "modifiedCount": 45 }
+  "total_objects": 567890,
+  "embedded_files": 23,
+  "incremental_updates": 623,
+  "avg_metadata_score": 78,
+  "signed_files": 234,
+  "monthly_modification_stats": [
+    { "month": 1, "total_count": 100, "modified_count": 38 },
+    { "month": 2, "total_count": 95, "modified_count": 41 },
+    { "month": 3, "total_count": 110, "modified_count": 45 }
   ],
-  "newestCreationDate": 1735689600,
-  "totalFileSize": 1250000000
+  "newest_creation_date": 1735689600,
+  "total_file_size": 1250000000
 }
 ```
 
@@ -514,13 +514,13 @@ const stats = await fetch('https://htpbe.tech/api/v1/stats', {
 }).then((r) => r.json());
 
 const dashboard = {
-  totalDocuments: stats.totalChecks,
-  modificationRate: ((stats.editedFiles / stats.totalChecks) * 100).toFixed(1) + '%',
-  topTool: stats.mostUsedProducer,
+  totalDocuments: stats.total_checks,
+  modificationRate: ((stats.modified_checks / stats.total_checks) * 100).toFixed(1) + '%',
+  topTool: stats.most_used_producer,
 
   // Alert if critical conditions detected
   alerts: [
-    stats.signedButModified > 0 ? `${stats.signedButModified} signed docs were modified` : null,
+    stats.signed_but_modified > 0 ? `${stats.signed_but_modified} signed docs were modified` : null,
   ].filter(Boolean),
 };
 ```
@@ -542,12 +542,12 @@ stats = requests.get(
 
 report = {
     'period': datetime.now().strftime('%Y-%m'),
-    'total_checks': stats['totalChecks'],
-    'modified_documents': stats['editedFiles'],
-    'modification_rate': f"{(stats['editedFiles'] / stats['totalChecks'] * 100):.1f}%",
+    'total_checks': stats['total_checks'],
+    'modified_documents': stats['modified_checks'],
+    'modification_rate': f"{(stats['modified_checks'] / stats['total_checks'] * 100):.1f}%",
     'high_risk_indicators': {
-        'signed_but_modified': stats['signedButModified'],
-        'javascript_files': stats['jsFiles']
+        'signed_but_modified': stats['signed_but_modified'],
+        'javascript_files': stats['js_files']
     }
 }
 
@@ -577,7 +577,7 @@ async function checkQuotaUsage() {
 
   const currentPlan = 'growth'; // From your settings
   const quota = quotaLimits[currentPlan];
-  const usage = stats.totalChecks;
+  const usage = stats.total_checks;
   const remaining = quota - usage;
   const percentUsed = ((usage / quota) * 100).toFixed(1);
 
@@ -602,25 +602,25 @@ const stats = await getStats();
 
 // Tool popularity analysis
 const toolAnalysis = {
-  mostPopularCreator: stats.mostUsedCreator,
-  mostPopularProducer: stats.mostUsedProducer,
+  mostPopularCreator: stats.most_used_creator,
+  mostPopularProducer: stats.most_used_producer,
 
   // Top 3 producers with counts
-  topProducers: stats.topProducers.slice(0, 3).map((p) => ({
+  topProducers: stats.top_producers.slice(0, 3).map((p) => ({
     name: p.producer,
     count: p.count,
-    percentage: ((p.count / stats.totalChecks) * 100).toFixed(1) + '%',
+    percentage: ((p.count / stats.total_checks) * 100).toFixed(1) + '%',
   })),
 
   // Tool diversity
-  toolDiversity: stats.topProducers.length, // More = diverse toolset
+  toolDiversity: stats.top_producers.length, // More = diverse toolset
 
   // PDF version adoption
-  modernPDFs: stats.versionDistribution
+  modernPDFs: stats.version_distribution
     .filter((v) => parseFloat(v.version) >= 1.7)
     .reduce((sum, v) => sum + v.count, 0),
 
-  legacyPDFs: stats.versionDistribution
+  legacyPDFs: stats.version_distribution
     .filter((v) => parseFloat(v.version) < 1.7)
     .reduce((sum, v) => sum + v.count, 0),
 };
@@ -640,19 +640,19 @@ const stats = await getStats();
 const securityMetrics = {
   // Critical security indicators
   signatureIntegrity: {
-    total: stats.signedFiles,
-    compromised: stats.signedButModified,
+    total: stats.signed_files,
+    compromised: stats.signed_but_modified,
     rate:
-      stats.signedFiles > 0
-        ? ((stats.signedButModified / stats.signedFiles) * 100).toFixed(1) + '%'
+      stats.signed_files > 0
+        ? ((stats.signed_but_modified / stats.signed_files) * 100).toFixed(1) + '%'
         : '0%',
   },
 
   // Potentially dangerous features
   riskyFeatures: {
-    javascript: stats.jsFiles,
-    embeddedFiles: stats.embeddedFiles,
-    combined: stats.jsFiles + stats.embeddedFiles,
+    javascript: stats.js_files,
+    embeddedFiles: stats.embedded_files,
+    combined: stats.js_files + stats.embedded_files,
   },
 };
 
@@ -684,12 +684,12 @@ If you haven't performed any checks yet, most numeric fields will return `0`:
 
 ```json
 {
-  "totalChecks": 0,
-  "editedFiles": 0,
-  "topProducers": [],
-  "topCreators": [],
-  "versionDistribution": [],
-  "monthlyModificationStats": []
+  "total_checks": 0,
+  "modified_checks": 0,
+  "top_producers": [],
+  "top_creators": [],
+  "version_distribution": [],
+  "monthly_modification_stats": []
 }
 ```
 

@@ -19,12 +19,13 @@ HTPBE analyzes a PDF file and returns one of three verdicts:
 
 **What "No Traces Found" actually means:** The algorithm found no forensic evidence of modification — no structural artifacts, no metadata inconsistencies, no editing tool signatures. This is a statement about what was detected, not a guarantee of authenticity. A document fabricated from scratch and exported cleanly may also show no traces, because it was never modified after creation — only created with false content. Absence of evidence is not evidence of absence.
 
-The analysis examines 4 layers:
+The analysis examines 5 layers:
 
 1. **Metadata** — creation date, modification date, creator app, producer app
 2. **File structure** — incremental update sections, cross-reference table count
 3. **Digital signatures** — presence, integrity, post-signing modifications
 4. **Content** — embedded JavaScript, attachments, page count anomalies
+5. **Threat Assessment** — risk scoring, detection method enumeration, specific findings
 
 ---
 
@@ -130,12 +131,12 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 
 ## Pricing
 
-| Plan           | Price   | Requests/month | Per request |
-| -------------- | ------- | -------------- | ----------- |
-| **Starter**    | $15/mo  | 30             | $0.50       |
-| **Growth**     | $149/mo | 350            | $0.43       |
-| **Pro**        | $499/mo | 1,500          | $0.33       |
-| **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 |
+| Plan           | Price   | Requests/month | Per request | Overage rate |
+| -------------- | ------- | -------------- | ----------- | ------------ |
+| **Starter**    | $15/mo  | 30             | $0.50       | $0.60/req    |
+| **Growth**     | $149/mo | 350            | $0.43       | $0.50/req    |
+| **Pro**        | $499/mo | 1,500          | $0.33       | $0.40/req    |
+| **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 | Included     |
 
 All plans: 14-day free trial · test API keys included · monthly billing only
 

@@ -181,12 +181,11 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 - **Type:** `string`
 - **Always Present:** Yes
-- **Description:** Filename extracted from the URL path when the PDF was analyzed
-- **Extraction:** Taken from the last segment of the `url` path
+- **Description:** The stored filename for this check. If `original_filename` was provided in the `POST /analyze` request body, that value is used. Otherwise it is extracted from the last segment of the `url` path.
 - **Examples:**
-  - `"contract.pdf"` (from `https://example.com/docs/contract.pdf`)
+  - `"contract.pdf"` (provided as `original_filename` or from `https://example.com/docs/contract.pdf`)
   - `"invoice-2024-01.pdf"`
-  - `"document.pdf"` (default if no filename in URL)
+  - `"document.pdf"` (default if no filename determinable from URL)
 
 ##### `check_date`
 
