@@ -177,17 +177,16 @@ const resultRes = await fetch(`https://htpbe.tech/api/v1/result/${id}`, {
 
 const result = await resultRes.json();
 // result.status: "intact" | "modified" | "inconclusive"
-// result.verdict_reasoning: string | null
 // ... (see /result endpoint docs for full schema)
 ```
 
-See [GET /api/v1/result/{id}](./result.md) for the full result schema, including verdict fields (`status`, `verdict_reasoning`, `critical_modification_marker`, `modification_confidence`), metadata, structure, signatures, threats, and findings.
+See [GET /api/v1/result/{id}](./result.md) for the full result schema, including verdict fields (`status`, `modification_confidence`, `modification_markers`), metadata, structure, signatures, threats, and findings.
 
 ---
 
 ### Understanding the verdict
 
-The verdict fields (`status`, `verdict_reasoning`, `critical_modification_marker`) are available in the result endpoint. See [GET /api/v1/result/{id}](./result.md) for details.
+The verdict fields (`status`, `modification_confidence`, `modification_markers`) are available in the result endpoint. See [GET /api/v1/result/{id}](./result.md) for details.
 
 **How `status: "modified"` is determined:**
 
@@ -431,7 +430,7 @@ Access forbidden due to account status.
 
 **Cause:** A test API key (`htpbe_test_...`) was used with a real URL. Test keys are restricted to the predefined test URLs — they cannot download or analyze real PDFs.
 
-**Solution:** Use one of the 19 mock test URLs listed in [Testing with Test API Keys](../testing.md), or switch to a live API key (`htpbe_live_...`) to analyze real files.
+**Solution:** Use one of the 21 mock test URLs listed in [Testing with Test API Keys](../testing.md), or switch to a live API key (`htpbe_live_...`) to analyze real files.
 
 ---
 
@@ -511,7 +510,7 @@ Server-side error during processing.
 
 ## Testing
 
-Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic UUID v4 check IDs (e.g., `00000000-0000-4000-8000-000000000001` for `clean.pdf`, `00000000-0000-4000-8000-000000000005` for `modified-high.pdf`) for the 19 predefined mock URLs + 1 error trigger URL — no real file is downloaded and no quota is consumed.
+Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic UUID v4 check IDs (e.g., `00000000-0000-4000-8000-000000000001` for `clean.pdf`, `00000000-0000-4000-8000-000000000005` for `modified-high.pdf`) for the 21 predefined mock URLs + 1 error trigger URL — no real file is downloaded and no quota is consumed.
 
 See [Testing with Test API Keys](../testing.md) for the complete test URL list, synthetic ID table, code examples, and checklist.
 

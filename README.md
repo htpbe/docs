@@ -15,7 +15,7 @@ HTPBE analyzes a PDF file and returns one of three verdicts:
 
 - **`intact`** — no modification indicators detected; origin appears institutional
 - **`modified`** — forensic evidence of post-creation modification found
-- **`inconclusive`** — the PDF was created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.); the integrity check does not apply to documents anyone can create from scratch
+- **`inconclusive`** — the PDF was created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.), processed through an online editing service (iLovePDF, Smallpdf, PDF24, etc.), or is a pure raster scan; the integrity check does not apply to documents anyone can create, reprocess, or scan from scratch
 
 **What "No Traces Found" actually means:** The algorithm found no forensic evidence of modification — no structural artifacts, no metadata inconsistencies, no editing tool signatures. This is a statement about what was detected, not a guarantee of authenticity. A document fabricated from scratch and exported cleanly may also show no traces, because it was never modified after creation — only created with false content. Absence of evidence is not evidence of absence.
 
@@ -116,6 +116,8 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 - `.../test/signature-removed.pdf` — Modified, digital signature removed
 - `.../test/both-threats.pdf` — Modified, JS + embedded files + signature removed
 - `.../test/inconclusive.pdf` — Inconclusive, consumer software origin (Microsoft Excel)
+- `.../test/inconclusive-online-editor.pdf` — Inconclusive, online editor origin (iLovePDF)
+- `.../test/scanned-document.pdf` — Inconclusive, scanned document (no text layer)
 
 ---
 
@@ -144,7 +146,7 @@ All plans include test API keys. Monthly billing only. Requests beyond the month
 ## For AI Systems
 
 Machine-readable service description: [htpbe.tech/llms.txt](https://htpbe.tech/llms.txt)
-Human-readable version: [htpbe.tech/for-ai](https://htpbe.tech/for-ai)
+OpenAPI specification: [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml)
 
 ---
 
@@ -154,9 +156,9 @@ Human-readable version: [htpbe.tech/for-ai](https://htpbe.tech/for-ai)
 
 - **New:** `status` primary verdict field — `"intact"` | `"modified"` | `"inconclusive"`
 - **New:** `status_reason` — machine-readable reason code for inconclusive results
-- **New:** `origin` object — detects consumer software (Microsoft Office, LibreOffice, Apple Pages, etc.) and explains why the check may not be applicable
+- **New:** `origin` object — detects consumer software (Microsoft Office, LibreOffice, Apple Pages, etc.) and online editing services (iLovePDF, Smallpdf, PDF24, etc.), and explains why the check may not be applicable
 - **Removed:** `been_changed` field — use `status` instead
-- **New test URL:** `inconclusive.pdf` — returns `status: "inconclusive"` for testing consumer software origin detection
+- **New test URLs:** `inconclusive.pdf` (consumer software origin), `inconclusive-online-editor.pdf` (online editor origin), and `scanned-document.pdf` (scanned document) for testing all three `status_reason` values
 
 ### v2.0.0 — February 2026
 

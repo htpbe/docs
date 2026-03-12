@@ -57,27 +57,29 @@ Test requests are completely free of quota. Running 10,000 test requests does no
 
 `POST /analyze` with a test key returns a deterministic UUID v4 `id` based on the test filename. Like Stripe's `4242 4242 4242 4242` test card number that passes real card format validation, these IDs pass UUID v4 format validation while being obviously synthetic (all-zeros pattern with sequential last bytes):
 
-| Test URL                             | Returned `id`                          |
-| ------------------------------------ | -------------------------------------- |
-| `.../test/clean.pdf`                 | `00000000-0000-4000-8000-000000000001` |
-| `.../test/clean-no-dates.pdf`        | `00000000-0000-4000-8000-000000000002` |
-| `.../test/modified-low.pdf`          | `00000000-0000-4000-8000-000000000003` |
-| `.../test/modified-medium.pdf`       | `00000000-0000-4000-8000-000000000004` |
-| `.../test/modified-high.pdf`         | `00000000-0000-4000-8000-000000000005` |
-| `.../test/modified-critical.pdf`     | `00000000-0000-4000-8000-000000000006` |
-| `.../test/dates-mismatch.pdf`        | `00000000-0000-4000-8000-000000000007` |
-| `.../test/dates-same.pdf`            | `00000000-0000-4000-8000-000000000008` |
-| `.../test/incremental-updates.pdf`   | `00000000-0000-4000-8000-000000000009` |
-| `.../test/multiple-xref.pdf`         | `00000000-0000-4000-8000-00000000000a` |
-| `.../test/signature-valid.pdf`       | `00000000-0000-4000-8000-00000000000b` |
-| `.../test/signature-removed.pdf`     | `00000000-0000-4000-8000-00000000000c` |
-| `.../test/modified-after-sign.pdf`   | `00000000-0000-4000-8000-00000000000d` |
-| `.../test/javascript.pdf`            | `00000000-0000-4000-8000-00000000000e` |
-| `.../test/embedded-files.pdf`        | `00000000-0000-4000-8000-00000000000f` |
-| `.../test/both-threats.pdf`          | `00000000-0000-4000-8000-000000000010` |
-| `.../test/inconclusive.pdf`          | `00000000-0000-4000-8000-000000000011` |
-| `.../test/date-sequence-invalid.pdf` | `00000000-0000-4000-8000-000000000012` |
-| `.../test/outdated-version.pdf`      | `00000000-0000-4000-8000-000000000013` |
+| Test URL                                  | Returned `id`                          |
+| ----------------------------------------- | -------------------------------------- |
+| `.../test/clean.pdf`                      | `00000000-0000-4000-8000-000000000001` |
+| `.../test/clean-no-dates.pdf`             | `00000000-0000-4000-8000-000000000002` |
+| `.../test/modified-low.pdf`               | `00000000-0000-4000-8000-000000000003` |
+| `.../test/modified-medium.pdf`            | `00000000-0000-4000-8000-000000000004` |
+| `.../test/modified-high.pdf`              | `00000000-0000-4000-8000-000000000005` |
+| `.../test/modified-critical.pdf`          | `00000000-0000-4000-8000-000000000006` |
+| `.../test/dates-mismatch.pdf`             | `00000000-0000-4000-8000-000000000007` |
+| `.../test/dates-same.pdf`                 | `00000000-0000-4000-8000-000000000008` |
+| `.../test/incremental-updates.pdf`        | `00000000-0000-4000-8000-000000000009` |
+| `.../test/multiple-xref.pdf`              | `00000000-0000-4000-8000-00000000000a` |
+| `.../test/signature-valid.pdf`            | `00000000-0000-4000-8000-00000000000b` |
+| `.../test/signature-removed.pdf`          | `00000000-0000-4000-8000-00000000000c` |
+| `.../test/modified-after-sign.pdf`        | `00000000-0000-4000-8000-00000000000d` |
+| `.../test/javascript.pdf`                 | `00000000-0000-4000-8000-00000000000e` |
+| `.../test/embedded-files.pdf`             | `00000000-0000-4000-8000-00000000000f` |
+| `.../test/both-threats.pdf`               | `00000000-0000-4000-8000-000000000010` |
+| `.../test/inconclusive.pdf`               | `00000000-0000-4000-8000-000000000011` |
+| `.../test/date-sequence-invalid.pdf`      | `00000000-0000-4000-8000-000000000012` |
+| `.../test/outdated-version.pdf`           | `00000000-0000-4000-8000-000000000013` |
+| `.../test/inconclusive-online-editor.pdf` | `00000000-0000-4000-8000-000000000014` |
+| `.../test/scanned-document.pdf`           | `00000000-0000-4000-8000-000000000015` |
 
 Because the ID is deterministic, you can hardcode it in your tests without calling `POST /analyze` first.
 
@@ -143,9 +145,7 @@ Response:
   "modification_date": 1710528300,
   "creator": "Adobe Acrobat Pro DC",
   "producer": "PDFtk Server 2.02",
-  "critical_modification_marker": "Known PDF editing tool detected",
   "modification_confidence": "high",
-  "verdict_reasoning": "Known PDF editing tool detected (PDFtk Server)",
   "date_sequence_valid": true,
   "metadata_completeness_score": 75,
   "xref_count": 4,
@@ -160,7 +160,7 @@ Response:
   "object_count": 480,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": []
+  "modification_markers": ["Known PDF editing tool detected"]
 }
 ```
 
@@ -186,14 +186,16 @@ Use these to test how your application handles documents that pass verification.
 | `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | Original document — metadata dates absent (e.g. auto-generated PDF)              |
 | `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | Digitally signed, no post-sign modifications                                     |
 
-### Inconclusive (Consumer Software Origin)
+### Inconclusive (Consumer Software, Online Editor, or Scanned Document)
 
-Use these to test how your application handles the case where integrity check is not applicable — PDFs created with office or consumer software cannot be verified.
+Use these to test how your application handles the case where integrity check is not applicable — PDFs created with office/consumer software, processed through online editors, or scanned from paper cannot be verified.
 
-| URL                                               | `status`       | Notes                                                   |
-| ------------------------------------------------- | -------------- | ------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-same.pdf`   | `inconclusive` | LibreOffice origin — integrity check not applicable     |
-| `https://htpbe.tech/api/v1/test/inconclusive.pdf` | `inconclusive` | Microsoft Excel origin — integrity check not applicable |
+| URL                                                             | `status`       | Notes                                                                                        |
+| --------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `https://htpbe.tech/api/v1/test/dates-same.pdf`                 | `inconclusive` | LibreOffice origin — `status_reason: "consumer_software_origin"`                             |
+| `https://htpbe.tech/api/v1/test/inconclusive.pdf`               | `inconclusive` | Microsoft Excel origin — `status_reason: "consumer_software_origin"`                         |
+| `https://htpbe.tech/api/v1/test/inconclusive-online-editor.pdf` | `inconclusive` | iLovePDF origin — `status_reason: "online_editor_origin"`, metadata stripped by service      |
+| `https://htpbe.tech/api/v1/test/scanned-document.pdf`           | `inconclusive` | Pure raster scan — `status_reason: "scanned_document"`, no text layer, no fonts, no metadata |
 
 ### Modified — Graduated Severity Levels
 
@@ -286,13 +288,29 @@ curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000005 \
   | jq '.status'
 # → "modified"
 
-# inconclusive
+# inconclusive (consumer software origin)
 curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000011 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status, .status_reason, .origin'
 # → "inconclusive"
 # → "consumer_software_origin"
 # → { "type": "consumer_software", "software": "Microsoft Excel" }
+
+# inconclusive (online editor origin)
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000014 \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
+  | jq '.status, .status_reason, .origin'
+# → "inconclusive"
+# → "online_editor_origin"
+# → { "type": "online_editor", "software": "iLovePDF" }
+
+# inconclusive (scanned document)
+curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000015 \
+  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
+  | jq '.status, .status_reason, .origin'
+# → "inconclusive"
+# → "scanned_document"
+# → { "type": "scanned", "software": null }
 ```
 
 ---
@@ -367,7 +385,7 @@ Expected:
 {
   "has_javascript": true,
   "has_embedded_files": true,
-  "modification_markers": []
+  "modification_markers": ["Digital signature was removed"]
 }
 ```
 
@@ -485,6 +503,18 @@ console.assert(inconclusive.status === 'inconclusive');
 console.assert(inconclusive.status_reason === 'consumer_software_origin');
 console.assert(inconclusive.origin.type === 'consumer_software');
 
+const onlineEditor = await analyzeAndGetResult('inconclusive-online-editor.pdf');
+console.assert(onlineEditor.status === 'inconclusive');
+console.assert(onlineEditor.status_reason === 'online_editor_origin');
+console.assert(onlineEditor.origin.type === 'online_editor');
+console.assert(onlineEditor.origin.software === 'iLovePDF');
+
+const scanned = await analyzeAndGetResult('scanned-document.pdf');
+console.assert(scanned.status === 'inconclusive');
+console.assert(scanned.status_reason === 'scanned_document');
+console.assert(scanned.origin.type === 'scanned');
+console.assert(scanned.origin.software === null);
+
 // Since IDs are deterministic you can skip POST and call GET directly:
 const result = await fetch(`${BASE_URL}/result/00000000-0000-4000-8000-000000000001`, {
   headers: { Authorization: `Bearer ${TEST_KEY}` },
@@ -536,6 +566,20 @@ result = analyze_and_get_result("inconclusive.pdf")
 assert result["status"] == "inconclusive"
 assert result["status_reason"] == "consumer_software_origin"
 assert result["origin"]["software"] == "Microsoft Excel"
+
+# Test inconclusive (online editor)
+result = analyze_and_get_result("inconclusive-online-editor.pdf")
+assert result["status"] == "inconclusive"
+assert result["status_reason"] == "online_editor_origin"
+assert result["origin"]["type"] == "online_editor"
+assert result["origin"]["software"] == "iLovePDF"
+
+# Test inconclusive (scanned document)
+result = analyze_and_get_result("scanned-document.pdf")
+assert result["status"] == "inconclusive"
+assert result["status_reason"] == "scanned_document"
+assert result["origin"]["type"] == "scanned"
+assert result["origin"]["software"] is None
 ```
 
 ---
@@ -551,7 +595,7 @@ assert result["origin"]["software"] == "Microsoft Excel"
 }
 ```
 
-**Fix:** Use one of the 19 URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
+**Fix:** Use one of the 21 URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
 
 ---
 
@@ -578,31 +622,18 @@ Live keys download and analyze the URL as a real file. Passing `https://htpbe.te
 
 ---
 
-### Expecting `verdict_reasoning` to always be present
-
-The `verdict_reasoning` field is `null` when no single dominant reason was identified. Several test fixtures return it as `null`:
-
-```bash
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
-  -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  | jq '.verdict_reasoning'
-# → null
-```
-
-**Fix:** Always use null checks: `result.verdict_reasoning ?? ""`.
-
----
-
 ## Checklist Before Going Live
 
 Use this list before switching from test to live keys:
 
 - [ ] Application handles `status: "intact"` (original document)
 - [ ] Application handles `status: "modified"` at low, medium, and high risk
-- [ ] Application handles `status: "inconclusive"` with `origin.software` displayed to the user
+- [ ] Application handles `status: "inconclusive"` with `status_reason: "consumer_software_origin"` and `origin.software` displayed to the user
+- [ ] Application handles `status: "inconclusive"` with `status_reason: "online_editor_origin"` (online editor, metadata stripped)
+- [ ] Application handles `status: "inconclusive"` with `status_reason: "scanned_document"` (pure raster scan, no text layer)
 - [ ] UI displays `modification_markers` array items clearly
 - [ ] Code handles `null` values in `creation_date` and `modification_date`
-- [ ] Code handles missing `verdict_reasoning` field
+- [ ] Code handles empty `modification_markers` array
 - [ ] `signature_removed: true` triggers a visible alert
 - [ ] `has_javascript: true` triggers a visible warning
 - [ ] 403 errors are surfaced to the user (not silently swallowed)
@@ -786,6 +817,90 @@ Microsoft Excel origin — integrity check not applicable.
 
 ---
 
+### `inconclusive-online-editor.pdf`
+
+**URL:** `https://htpbe.tech/api/v1/test/inconclusive-online-editor.pdf`
+**ID:** `00000000-0000-4000-8000-000000000014`
+
+iLovePDF origin — processed through an online editing service, metadata stripped.
+
+```json
+{
+  "status": "inconclusive",
+  "status_reason": "online_editor_origin",
+
+  "origin": {
+    "type": "online_editor",
+    "software": "iLovePDF"
+  },
+  "metadata": {
+    "creation_date": null,
+    "modification_date": null,
+    "creator": null,
+    "producer": "iLovePDF",
+    "file_size": 312000
+  },
+  "structure": {
+    "has_incremental_updates": false,
+    "update_chain_length": 1,
+    "xref_count": 1,
+    "pdf_version": "1.7"
+  },
+  "signatures": {
+    "has_digital_signature": false,
+    "signature_count": 0,
+    "signature_removed": false,
+    "modifications_after_signature": false
+  },
+  "threats": { "has_javascript": false, "has_embedded_files": false },
+  "modification_markers": []
+}
+```
+
+---
+
+### `scanned-document.pdf`
+
+**URL:** `https://htpbe.tech/api/v1/test/scanned-document.pdf`
+**ID:** `00000000-0000-4000-8000-000000000015`
+
+Pure raster scan — no text layer, no fonts, no metadata. Anyone can print and scan a document.
+
+```json
+{
+  "status": "inconclusive",
+  "status_reason": "scanned_document",
+
+  "origin": {
+    "type": "scanned",
+    "software": null
+  },
+  "metadata": {
+    "creation_date": null,
+    "modification_date": null,
+    "creator": null,
+    "producer": null,
+    "file_size": 890000
+  },
+  "structure": {
+    "has_incremental_updates": false,
+    "update_chain_length": 1,
+    "xref_count": 1,
+    "pdf_version": "1.4"
+  },
+  "signatures": {
+    "has_digital_signature": false,
+    "signature_count": 0,
+    "signature_removed": false,
+    "modifications_after_signature": false
+  },
+  "threats": { "has_javascript": false, "has_embedded_files": false },
+  "modification_markers": []
+}
+```
+
+---
+
 ### `signature-valid.pdf`
 
 **URL:** `https://htpbe.tech/api/v1/test/signature-valid.pdf`
@@ -856,7 +971,7 @@ Modification date 14 days after creation date.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Different creation and modification dates"]
 }
 ```
 
@@ -894,7 +1009,7 @@ Minor modification — one incremental update.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
 }
 ```
 
@@ -932,7 +1047,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
 }
 ```
 
@@ -970,7 +1085,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
 }
 ```
 
@@ -1008,7 +1123,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
 }
 ```
 
@@ -1046,7 +1161,7 @@ Embedded file attachments added after creation.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": true },
-  "modification_markers": []
+  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
 }
 ```
 
@@ -1084,7 +1199,7 @@ JavaScript code embedded in the PDF.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
 }
 ```
 
@@ -1122,7 +1237,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Known PDF editing tool detected"]
 }
 ```
 
@@ -1160,7 +1275,7 @@ Modified after digital signing — signature is now invalidated.
     "modifications_after_signature": true
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Modifications detected after digital signature"]
 }
 ```
 
@@ -1198,7 +1313,7 @@ Digital signature was removed from the document.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Digital signature was removed"]
 }
 ```
 
@@ -1236,7 +1351,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "modification_markers": []
+  "modification_markers": ["Digital signature was removed"]
 }
 ```
 
@@ -1274,9 +1389,89 @@ JavaScript + embedded files + signature removed. Maximum severity.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": true },
+  "modification_markers": ["Digital signature was removed"]
+}
+```
+
+---
+
+### `date-sequence-invalid.pdf`
+
+**URL:** `https://htpbe.tech/api/v1/test/date-sequence-invalid.pdf`
+**ID:** `00000000-0000-4000-8000-000000000012`
+
+Modification date is before creation date — impossible in a normal workflow, indicates date field tampering.
+
+```json
+{
+  "status": "modified",
+
+  "origin": { "type": "institutional", "software": null },
+  "metadata": {
+    "creation_date": "2024-05-01T12:00:00.000Z",
+    "modification_date": "2024-03-01T08:00:00.000Z",
+    "creator": "Adobe Acrobat Pro DC",
+    "producer": "Adobe PDF Library 15.0",
+    "file_size": 512000
+  },
+  "structure": {
+    "has_incremental_updates": false,
+    "update_chain_length": 1,
+    "xref_count": 1,
+    "pdf_version": "1.7"
+  },
+  "signatures": {
+    "has_digital_signature": false,
+    "signature_count": 0,
+    "signature_removed": false,
+    "modifications_after_signature": false
+  },
+  "threats": { "has_javascript": false, "has_embedded_files": false },
+  "modification_markers": ["Different creation and modification dates"]
+}
+```
+
+**Key field:** `date_sequence_valid: false` (omitted from the display-only grouping above but present in the real flat response).
+
+---
+
+### `outdated-version.pdf`
+
+**URL:** `https://htpbe.tech/api/v1/test/outdated-version.pdf`
+**ID:** `00000000-0000-4000-8000-000000000013`
+
+Analyzed with algorithm version `1.0.0` — triggers `outdated_warning` in the result.
+
+```json
+{
+  "status": "intact",
+
+  "origin": { "type": "institutional", "software": null },
+  "metadata": {
+    "creation_date": "2023-06-01T10:00:00.000Z",
+    "modification_date": null,
+    "creator": "Adobe Acrobat Pro DC",
+    "producer": "Adobe PDF Library 15.0",
+    "file_size": 430080
+  },
+  "structure": {
+    "has_incremental_updates": false,
+    "update_chain_length": 1,
+    "xref_count": 1,
+    "pdf_version": "1.7"
+  },
+  "signatures": {
+    "has_digital_signature": false,
+    "signature_count": 0,
+    "signature_removed": false,
+    "modifications_after_signature": false
+  },
+  "threats": { "has_javascript": false, "has_embedded_files": false },
   "modification_markers": []
 }
 ```
+
+**Key field:** `algorithm_version: "1.0.0"` (older than current) — the real response includes `outdated_warning` with a human-readable message recommending re-analysis.
 
 ---
 

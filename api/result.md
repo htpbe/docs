@@ -118,9 +118,9 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
   // Primary Verdict
   status: "intact" | "modified" | "inconclusive";
-  status_reason?: "consumer_software_origin";
+  status_reason?: "consumer_software_origin" | "online_editor_origin" | "scanned_document";
   origin: {
-    type: "consumer_software" | "institutional" | "unknown";
+    type: "consumer_software" | "institutional" | "unknown" | "online_editor" | "scanned";
     software: string | null;
   };
 
@@ -131,9 +131,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   producer: string | null;
 
   // Critical Modification Detection
-  critical_modification_marker: string | null;
   modification_confidence: string | null;
-  verdict_reasoning: string | null;
 
   // Metadata Analysis
   date_sequence_valid: boolean;
@@ -247,22 +245,31 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Always Present:** Yes
 - **Description:** **PRIMARY VERDICT.** Priority: `modified > inconclusive > intact`
   - `"modified"` — forensic evidence of post-creation modification detected; takes priority over origin type — a modified Word or Excel document is still `modified`
-  - `"inconclusive"` — consumer software origin (Word, LibreOffice, Google Docs, etc.) with no modification detected; integrity check does not apply to documents anyone can create from scratch — a document that was never an "original" in the institutional sense cannot be verified for post-creation tampering
+  - `"inconclusive"` — consumer software, online editor, or scanned origin with no modification detected; integrity check does not apply to documents anyone can create, reprocess, or scan from scratch
   - `"intact"` — no modification detected and origin appears institutional
-- **Note:** `status_reason: "consumer_software_origin"` only appears when `status === "inconclusive"` (consumer software + no modification detected)
+- **Note:** `status_reason` only appears when `status === "inconclusive"`
 
 ##### `status_reason`
 
-- **Type:** `"consumer_software_origin"` (string literal) | absent
+- **Type:** `"consumer_software_origin" | "online_editor_origin" | "scanned_document"` | absent
 - **Always Present:** No — only present when `status === "inconclusive"`
-- **Description:** Explains why the result is inconclusive. Currently only one value is defined.
-- **Value:** `"consumer_software_origin"` — the PDF was created by consumer software (Microsoft Word, LibreOffice, Google Docs, etc.). These tools allow anyone to create a document from scratch, so there is no meaningful "original" to compare against. Integrity verification does not apply.
+- **Description:** Explains why the result is inconclusive.
+- **Values:**
+  - `"consumer_software_origin"` — the PDF was created by consumer software (Microsoft Word, LibreOffice, Google Docs, etc.). These tools allow anyone to create a document from scratch, so there is no meaningful "original" to compare against.
+  - `"online_editor_origin"` — the PDF was processed through an online editing service (iLovePDF, Smallpdf, PDF24, etc.). These services strip original metadata, making provenance verification impossible.
+  - `"scanned_document"` — the PDF is a pure raster scan (no fonts, no text layer, at least one image per page). Anyone can print and scan a document, so its content cannot be verified through metadata analysis.
 - **Usage:** Always check `status_reason` when `status === "inconclusive"` — it tells you _why_ the result is inconclusive, not just that it is.
 
 ```typescript
 if (result.status === 'inconclusive') {
-  // result.status_reason === 'consumer_software_origin'
-  // The document was created in consumer software — not tampered, just unverifiable
+  if (result.status_reason === 'scanned_document') {
+    // Pure raster scan — no text layer, provenance unverifiable
+  } else if (result.status_reason === 'online_editor_origin') {
+    // Processed through an online editor — original metadata stripped
+  } else {
+    // result.status_reason === 'consumer_software_origin'
+    // Created in consumer software — not tampered, just unverifiable
+  }
 }
 ```
 
@@ -310,23 +317,6 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 #### Critical Modification Detection Fields
 
-##### `critical_modification_marker`
-
-- **Type:** `string | null`
-- **Can Be Null:** Yes
-- **Description:** The specific forensic indicator that triggered the modification verdict
-- **Null When:** No critical modification markers found
-- **Possible Values:**
-  - `null` - No critical markers detected
-  - `"Different creation and modification dates"` — dates don't match; confidence: `certain`
-  - `"Modifications detected after digital signature"` — file modified after signing; confidence: `certain`
-  - `"Digital signature was removed"` — signature deletion detected; confidence: `certain`
-  - `"Multiple cross-reference tables (incremental updates)"` — structure shows multiple saves; confidence: `high`
-  - `"Known PDF editing tool detected"` — Producer/Creator identifies a PDF editing tool; confidence: `high`
-  - `"Mandatory metadata fields removed"` — creation date or producer/creator absent; confidence: `high`
-  - `"Font structure inconsistent with claimed PDF generator"` — claimed tool always embeds fonts, but none found; confidence: `high`
-- **Usage:** If not null, this is **definitive evidence** of modification — treat the document as modified regardless of other fields
-
 ##### `modification_confidence`
 
 - **Type:** `string | null` (enum)
@@ -338,18 +328,6 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   - `"none"` — no modification detected; document can be accepted as-is
 - **Relationship to `status`:** `certain` and `high` always correspond to `status: "modified"`. `none` corresponds to `status: "intact"` or `"inconclusive"` depending on origin.
 - **Null When:** Legacy records before this field was added
-
-##### `verdict_reasoning`
-
-- **Type:** `string | null`
-- **Can Be Null:** Yes
-- **Description:** Human-readable explanation of the primary reason behind the modification verdict
-- **Null When:** No single dominant reason identified; verdict is based on aggregate scoring
-- **Example Values:**
-  - `"Known PDF editing tool detected (iLovePDF)"`
-  - `"Digital signature was removed from the document"`
-  - `"Document was modified after digital signing"`
-- **Usage:** Display as a concise one-line verdict explanation in audit reports
 
 ---
 
@@ -505,7 +483,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 - **Type:** `string[]` (array of strings)
 - **Always Present:** Yes
-- **Description:** All modification signals detected, ordered strongest-first. Usually contains one entry; may have two or three when multiple independent signals fired simultaneously (e.g. different dates AND an editing tool detected). Empty when `status` is `"intact"` or `"inconclusive"`.
+- **Description:** All modification signals detected, ordered strongest-first. The first element (`modification_markers[0]`) is the strongest marker — the single most important forensic indicator that drove the verdict. Usually contains one entry; may have two or three when multiple independent signals fired simultaneously (e.g. different dates AND an editing tool detected). Empty when `status` is `"intact"` or `"inconclusive"`.
 - **Empty When:** No modification detected (`status: "intact"` or `status: "inconclusive"`)
 - **Example Values:**
   - `"Different creation and modification dates"`
@@ -516,6 +494,10 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   - `"Mandatory metadata fields removed"`
   - `"Font structure inconsistent with claimed PDF generator"`
   - `"Document structure indicates design-tool template assembly"`
+  - `"Creator or producer present but creation date removed"`
+  - `"Soft-mask (alpha channel) detected on page images"`
+  - `"Embedded font with isolated text over image-heavy page"`
+  - `"Text rendered as vector outlines — fonts absent in non-scan document"`
 
 ---
 
@@ -538,9 +520,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "modification_date": 1707840000,
   "creator": "Adobe Acrobat Pro DC",
   "producer": "Adobe PDF Library 15.0",
-  "critical_modification_marker": "Digital signature was removed",
   "modification_confidence": "certain",
-  "verdict_reasoning": "Digital signature was removed from the document",
   "date_sequence_valid": true,
   "metadata_completeness_score": 90,
   "xref_count": 2,
@@ -582,9 +562,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "modification_date": 1709283600,
   "creator": "Microsoft Excel 2019",
   "producer": "Microsoft: Print To PDF",
-  "critical_modification_marker": null,
   "modification_confidence": "none",
-  "verdict_reasoning": null,
   "date_sequence_valid": true,
   "metadata_completeness_score": 65,
   "xref_count": 1,
@@ -597,6 +575,84 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "modifications_after_signature": false,
   "page_count": 1,
   "object_count": 82,
+  "has_javascript": false,
+  "has_embedded_files": false,
+  "modification_markers": []
+}
+```
+
+#### Example Response — Inconclusive (Online Editor Origin)
+
+```json
+{
+  "id": "00000000-0000-4000-8000-000000000014",
+  "filename": "inconclusive-online-editor.pdf",
+  "check_date": null,
+  "file_size": 312000,
+  "algorithm_version": "2.2.1",
+  "current_algorithm_version": "2.2.1",
+  "status": "inconclusive",
+  "status_reason": "online_editor_origin",
+  "origin": {
+    "type": "online_editor",
+    "software": "iLovePDF"
+  },
+  "creation_date": null,
+  "modification_date": null,
+  "creator": null,
+  "producer": "iLovePDF",
+  "modification_confidence": "none",
+  "date_sequence_valid": true,
+  "metadata_completeness_score": 15,
+  "xref_count": 1,
+  "has_incremental_updates": false,
+  "update_chain_length": 1,
+  "pdf_version": "1.7",
+  "has_digital_signature": false,
+  "signature_count": 0,
+  "signature_removed": false,
+  "modifications_after_signature": false,
+  "page_count": 2,
+  "object_count": 110,
+  "has_javascript": false,
+  "has_embedded_files": false,
+  "modification_markers": []
+}
+```
+
+#### Example Response — Inconclusive (Scanned Document)
+
+```json
+{
+  "id": "00000000-0000-4000-8000-000000000015",
+  "filename": "scanned-document.pdf",
+  "check_date": null,
+  "file_size": 890000,
+  "algorithm_version": "2.2.1",
+  "current_algorithm_version": "2.2.1",
+  "status": "inconclusive",
+  "status_reason": "scanned_document",
+  "origin": {
+    "type": "scanned",
+    "software": null
+  },
+  "creation_date": null,
+  "modification_date": null,
+  "creator": null,
+  "producer": null,
+  "modification_confidence": "none",
+  "date_sequence_valid": true,
+  "metadata_completeness_score": 0,
+  "xref_count": 1,
+  "has_incremental_updates": false,
+  "update_chain_length": 1,
+  "pdf_version": "1.4",
+  "has_digital_signature": false,
+  "signature_count": 0,
+  "signature_removed": false,
+  "modifications_after_signature": false,
+  "page_count": 3,
+  "object_count": 45,
   "has_javascript": false,
   "has_embedded_files": false,
   "modification_markers": []
@@ -754,7 +810,7 @@ const report = {
     analysisDate: new Date(result.check_date * 1000),
   },
 
-  criticalMarkers: result.critical_modification_marker ? [result.critical_modification_marker] : [],
+  criticalMarkers: result.modification_markers,
 };
 ```
 
