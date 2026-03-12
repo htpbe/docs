@@ -132,8 +132,8 @@ Response:
   "filename": "modified-high.pdf",
   "check_date": null,
   "file_size": 1048576,
-  "algorithm_version": "2.1.6",
-  "current_algorithm_version": "2.1.6",
+  "algorithm_version": "2.2.1",
+  "current_algorithm_version": "2.2.1",
   "status": "modified",
   "origin": {
     "type": "institutional",
@@ -160,17 +160,13 @@ Response:
   "object_count": 480,
   "has_javascript": false,
   "has_embedded_files": false,
-  "detection_methods": ["structure_analysis", "tool_detection", "metadata_analysis"],
-  "specific_findings": [
-    "Extensive modification history",
-    "Producer changed from Adobe to PDFtk",
-    "Suspicious tool pattern detected",
-    "Long modification chain"
-  ]
+  "modification_markers": []
 }
 ```
 
 Note: `check_date` is always `null` for synthetic test results — do not assert on it in tests.
+
+> **Note:** Version numbers (`algorithm_version`, `current_algorithm_version`) reflect the algorithm in use at the time of analysis. The current version may differ.
 
 Since IDs are deterministic, you can skip Step 1 and call `GET /result/00000000-0000-4000-8000-000000000005` directly in your tests.
 
@@ -267,7 +263,7 @@ curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
 
 - `POST /analyze` returns `{ "id": "00000000-0000-4000-8000-000000000001" }` — no analysis data
 - `status` is `"intact"`
-- `specific_findings` is an empty array `[]`
+- `modification_markers` is an empty array `[]`
 - `creation_date` is non-null
 - `origin.type` is `"institutional"`
 
@@ -362,7 +358,7 @@ Test that your UI handles JavaScript and embedded file warnings:
 ```bash
 curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000010 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
-  | jq '{has_javascript, has_embedded_files, specific_findings}'
+  | jq '{has_javascript, has_embedded_files, modification_markers}'
 ```
 
 Expected:
@@ -371,13 +367,7 @@ Expected:
 {
   "has_javascript": true,
   "has_embedded_files": true,
-  "specific_findings": [
-    "CRITICAL: JavaScript AND embedded files detected",
-    "Digital signature removed",
-    "Suspicious editing tool",
-    "High risk of malicious content",
-    "Multiple security threats present"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -610,7 +600,7 @@ Use this list before switching from test to live keys:
 - [ ] Application handles `status: "intact"` (original document)
 - [ ] Application handles `status: "modified"` at low, medium, and high risk
 - [ ] Application handles `status: "inconclusive"` with `origin.software` displayed to the user
-- [ ] UI displays `specific_findings` array items clearly
+- [ ] UI displays `modification_markers` array items clearly
 - [ ] Code handles `null` values in `creation_date` and `modification_date`
 - [ ] Code handles missing `verdict_reasoning` field
 - [ ] `signature_removed: true` triggers a visible alert
@@ -668,7 +658,7 @@ Original document, no modifications.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": []
+  "modification_markers": []
 }
 ```
 
@@ -706,7 +696,7 @@ Original document, metadata dates absent (common in auto-generated PDFs).
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": []
+  "modification_markers": []
 }
 ```
 
@@ -748,7 +738,7 @@ LibreOffice origin — integrity check not applicable.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": []
+  "modification_markers": []
 }
 ```
 
@@ -790,7 +780,7 @@ Microsoft Excel origin — integrity check not applicable.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": []
+  "modification_markers": []
 }
 ```
 
@@ -828,7 +818,7 @@ Digitally signed, no post-sign modifications.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": ["Document digitally signed", "No modifications after signature"]
+  "modification_markers": []
 }
 ```
 
@@ -866,7 +856,7 @@ Modification date 14 days after creation date.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": ["Modification date 14 days after creation date"]
+  "modification_markers": []
 }
 ```
 
@@ -904,10 +894,7 @@ Minor modification — one incremental update.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Incremental update detected",
-    "Modification date differs from creation date"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -945,11 +932,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Multiple incremental updates detected",
-    "Creator/Producer mismatch",
-    "Significant time gap between creation and modification"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -987,10 +970,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Multiple xref tables detected (4 total)",
-    "Incremental update chain present"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -1028,10 +1008,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Multiple incremental updates (6 chain length)",
-    "Complex modification history"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -1069,7 +1046,7 @@ Embedded file attachments added after creation.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": true },
-  "specific_findings": ["Embedded files detected", "Files added after creation"]
+  "modification_markers": []
 }
 ```
 
@@ -1107,7 +1084,7 @@ JavaScript code embedded in the PDF.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "specific_findings": ["JavaScript code detected in PDF", "Potential security risk"]
+  "modification_markers": []
 }
 ```
 
@@ -1145,12 +1122,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Extensive modification history",
-    "Producer changed from Adobe to PDFtk",
-    "Suspicious tool pattern detected",
-    "Long modification chain"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -1188,11 +1160,7 @@ Modified after digital signing — signature is now invalidated.
     "modifications_after_signature": true
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Document modified after being digitally signed",
-    "Signature may be invalid",
-    "Content changed post-signature"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -1230,10 +1198,7 @@ Digital signature was removed from the document.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "specific_findings": [
-    "Digital signature removed (critical tampering)",
-    "Document integrity compromised"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -1271,14 +1236,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "specific_findings": [
-    "Critical: Digital signature removed",
-    "JavaScript code detected",
-    "Extensive modification chain (8 updates)",
-    "Creator/Producer severe mismatch",
-    "Suspicious editing tool (iText)",
-    "Multiple months between creation and modification"
-  ]
+  "modification_markers": []
 }
 ```
 
@@ -1316,13 +1274,7 @@ JavaScript + embedded files + signature removed. Maximum severity.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": true },
-  "specific_findings": [
-    "CRITICAL: JavaScript AND embedded files detected",
-    "Digital signature removed",
-    "Suspicious editing tool",
-    "High risk of malicious content",
-    "Multiple security threats present"
-  ]
+  "modification_markers": []
 }
 ```
 

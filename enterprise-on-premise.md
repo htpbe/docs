@@ -55,7 +55,7 @@ Your application
 │  └──────────────────────────┘   │
 └─────────────────────────────────┘
        │
-       │  { id, status, specific_findings, ... }
+       │  { id, status, modification_markers, ... }
        ▼
 Your application
 ```

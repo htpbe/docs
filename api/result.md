@@ -157,9 +157,8 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   has_javascript: boolean;
   has_embedded_files: boolean;
 
-  // Threat Assessment
-  detection_methods: string[];
-  specific_findings: string[];
+  // Modification Evidence
+  modification_markers: string[];
 }
 ```
 
@@ -210,23 +209,25 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 #### Algorithm Version Fields
 
+> **Note:** Version numbers reflect the algorithm in use at the time of analysis. The current version may differ.
+
 ##### `algorithm_version`
 
 - **Type:** `string`
 - **Always Present:** Yes
 - **Description:** Version of the detection algorithm used when this check was performed. Defaults to `"1.0.0"` for records created before algorithm versioning was introduced.
-- **Format:** Semantic versioning (e.g., `"2.1.0"`)
+- **Format:** Semantic versioning (e.g., `"2.2.1"`)
 - **Usage:** Compare against the current version to determine if re-analysis is recommended
-- **Example:** `"2.1.0"`
+- **Example:** `"2.2.1"`
 
 ##### `current_algorithm_version`
 
 - **Type:** `string`
 - **Always Present:** Yes
 - **Description:** The current algorithm version running on the server
-- **Format:** Semantic versioning (e.g., `"2.1.6"`)
+- **Format:** Semantic versioning (e.g., `"2.2.1"`)
 - **Usage:** Compare `algorithm_version` against `current_algorithm_version` to determine if the check is outdated. If `algorithm_version !== current_algorithm_version`, the check was performed with an older algorithm and re-analysis is recommended.
-- **Example:** `"2.1.6"`
+- **Example:** `"2.2.1"`
 
 ##### `outdated_warning`
 
@@ -498,29 +499,23 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 ---
 
-#### Threat Assessment Fields
+#### Modification Evidence Fields
 
-##### `detection_methods`
-
-- **Type:** `string[]` (array of strings)
-- **Always Present:** Yes
-- **Description:** List of detection methods that were applied during analysis
-- **Empty When:** No anomalies detected (intact documents) or inconclusive origin
-- **Common Values:**
-  - `"metadata_analysis"` - Analyzed creation vs modification dates
-  - `"structure_analysis"` - Examined PDF internal structure for updates
-  - `"signature_analysis"` - Checked for digital signature presence/removal
-  - `"tool_detection"` - Checked creator/producer combinations for known editing tools
-  - `"threat_analysis"` - Checked for JavaScript and embedded files
-- **Usage:** Indicates which analysis techniques were used (informational)
-
-##### `specific_findings`
+##### `modification_markers`
 
 - **Type:** `string[]` (array of strings)
 - **Always Present:** Yes
-- **Description:** Detailed human-readable list of issues and anomalies detected during analysis
-- **Empty When:** No issues detected (original document)
-- **Example Values:** `"Document modified 36 days after creation"`, `"Digital signature removed (critical tampering)"`, `"JavaScript code detected in PDF"`, `"Multiple xref tables detected (4 total)"`
+- **Description:** All modification signals detected, ordered strongest-first. Usually contains one entry; may have two or three when multiple independent signals fired simultaneously (e.g. different dates AND an editing tool detected). Empty when `status` is `"intact"` or `"inconclusive"`.
+- **Empty When:** No modification detected (`status: "intact"` or `status: "inconclusive"`)
+- **Example Values:**
+  - `"Different creation and modification dates"`
+  - `"Multiple cross-reference tables (incremental updates)"`
+  - `"Digital signature was removed"`
+  - `"Modifications detected after digital signature"`
+  - `"Known PDF editing tool detected"`
+  - `"Mandatory metadata fields removed"`
+  - `"Font structure inconsistent with claimed PDF generator"`
+  - `"Document structure indicates design-tool template assembly"`
 
 ---
 
@@ -532,8 +527,8 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "filename": "contract.pdf",
   "check_date": 1736542583,
   "file_size": 245632,
-  "algorithm_version": "2.1.6",
-  "current_algorithm_version": "2.1.6",
+  "algorithm_version": "2.2.1",
+  "current_algorithm_version": "2.2.1",
   "status": "modified",
   "origin": {
     "type": "institutional",
@@ -560,11 +555,9 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 487,
   "has_javascript": false,
   "has_embedded_files": false,
-  "detection_methods": ["metadata_analysis", "structure_analysis", "signature_analysis"],
-  "specific_findings": [
-    "Document modified 36 days after creation",
-    "Digital signature removed (critical tampering)",
-    "3 incremental update chains detected"
+  "modification_markers": [
+    "Digital signature was removed",
+    "Different creation and modification dates"
   ]
 }
 ```
@@ -577,8 +570,8 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "filename": "inconclusive.pdf",
   "check_date": null,
   "file_size": 204800,
-  "algorithm_version": "2.1.6",
-  "current_algorithm_version": "2.1.6",
+  "algorithm_version": "2.2.1",
+  "current_algorithm_version": "2.2.1",
   "status": "inconclusive",
   "status_reason": "consumer_software_origin",
   "origin": {
@@ -606,8 +599,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 82,
   "has_javascript": false,
   "has_embedded_files": false,
-  "detection_methods": [],
-  "specific_findings": []
+  "modification_markers": []
 }
 ```
 
