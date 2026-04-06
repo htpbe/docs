@@ -44,7 +44,7 @@ Free, no registration required.
 
 REST API for automated document verification workflows.
 
-**Base URL:** `https://htpbe.tech/api/v1`
+**Base URL:** `https://api.htpbe.tech/v1`
 **Auth:** `Authorization: Bearer YOUR_API_KEY`
 
 Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All plans include test API keys for development. The web interface is free and unlimited for evaluating quality.
@@ -66,7 +66,7 @@ Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All plans include 
 ### Analyze a PDF
 
 ```bash
-curl -X POST https://htpbe.tech/api/v1/analyze \
+curl -X POST https://api.htpbe.tech/v1/analyze \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/invoice.pdf"}'
@@ -85,14 +85,14 @@ Then retrieve the full result:
 ### Retrieve a past result
 
 ```bash
-curl https://htpbe.tech/api/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21 \
+curl https://api.htpbe.tech/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21 \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ### List all checks
 
 ```bash
-curl "https://htpbe.tech/api/v1/checks?limit=20&status=modified" \
+curl "https://api.htpbe.tech/v1/checks?limit=20&status=modified" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
@@ -101,10 +101,10 @@ curl "https://htpbe.tech/api/v1/checks?limit=20&status=modified" \
 Test keys (`htpbe_test_...`) work with mock URLs at no cost:
 
 ```bash
-curl -X POST https://htpbe.tech/api/v1/analyze \
+curl -X POST https://api.htpbe.tech/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
+  -d '{"url": "https://api.htpbe.tech/v1/test/modified-high.pdf"}'
 ```
 
 Selected mock URLs (see [testing.md](./testing.md) for full list):
@@ -152,6 +152,11 @@ OpenAPI specification: [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml
 
 ## Changelog
 
+### v3.1.0 — April 2026
+
+- **New:** API is now available at the dedicated subdomain `https://api.htpbe.tech/v1`
+- The previous base URL (`https://htpbe.tech/api/v1`) continues to work — no migration required
+
 ### v3.0.0 — March 2026
 
 - **New:** `status` primary verdict field — `"intact"` | `"modified"` | `"inconclusive"`
@@ -178,6 +183,6 @@ OpenAPI specification: [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml
 ## Contact
 
 **Iurii Rogulia** -- Founder
-Email: iurii@rogulia.fi
+Email: mail@htpbe.tech
 Web: [htpbe.tech](https://htpbe.tech)
 Location: Lappeenranta, Finland

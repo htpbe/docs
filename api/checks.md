@@ -5,7 +5,7 @@ Retrieve a paginated list of all your PDF check results with flexible filtering 
 ## Endpoint
 
 ```
-GET https://htpbe.tech/api/v1/checks
+GET https://api.htpbe.tech/v1/checks
 ```
 
 ## Authentication
@@ -96,7 +96,7 @@ Omit to return all checks regardless of verdict.
 #### Basic Usage - Get First Page
 
 ```bash
-curl 'https://htpbe.tech/api/v1/checks?limit=100&offset=0' \
+curl 'https://api.htpbe.tech/v1/checks?limit=100&offset=0' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -104,7 +104,7 @@ curl 'https://htpbe.tech/api/v1/checks?limit=100&offset=0' \
 
 ```bash
 # Find all checks involving Adobe PDF Library (as Creator OR Producer)
-curl 'https://htpbe.tech/api/v1/checks?tool=Adobe%20PDF%20Library%2015.0&limit=500' \
+curl 'https://api.htpbe.tech/v1/checks?tool=Adobe%20PDF%20Library%2015.0&limit=500' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -112,11 +112,11 @@ curl 'https://htpbe.tech/api/v1/checks?tool=Adobe%20PDF%20Library%2015.0&limit=5
 
 ```bash
 # Get only confirmed modified PDFs
-curl 'https://htpbe.tech/api/v1/checks?status=modified&limit=200' \
+curl 'https://api.htpbe.tech/v1/checks?status=modified&limit=200' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 
 # Get inconclusive checks (consumer software, online editor, or scanned origin)
-curl 'https://htpbe.tech/api/v1/checks?status=inconclusive&limit=200' \
+curl 'https://api.htpbe.tech/v1/checks?status=inconclusive&limit=200' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -124,7 +124,7 @@ curl 'https://htpbe.tech/api/v1/checks?status=inconclusive&limit=200' \
 
 ```bash
 # Get checks submitted in February 2026
-curl 'https://htpbe.tech/api/v1/checks?from_date=1738368000&to_date=1740960000' \
+curl 'https://api.htpbe.tech/v1/checks?from_date=1738368000&to_date=1740960000' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -132,7 +132,7 @@ curl 'https://htpbe.tech/api/v1/checks?from_date=1738368000&to_date=1740960000' 
 
 ```bash
 # Modified Word documents from January 2026
-curl 'https://htpbe.tech/api/v1/checks?creator=Microsoft%20Word%20for%20Microsoft%20365&status=modified&from_date=1735689600&to_date=1738368000' \
+curl 'https://api.htpbe.tech/v1/checks?creator=Microsoft%20Word%20for%20Microsoft%20365&status=modified&from_date=1735689600&to_date=1738368000' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -151,7 +151,7 @@ async function getAllChecks() {
 
   while (hasMore) {
     const response = await fetch(
-      `https://htpbe.tech/api/v1/checks?limit=${limit}&offset=${offset}`,
+      `https://api.htpbe.tech/v1/checks?limit=${limit}&offset=${offset}`,
       {
         headers: { Authorization: `Bearer ${apiKey}` },
       }
@@ -195,7 +195,7 @@ def get_all_checks(filters=None):
             params.update(filters)
 
         response = requests.get(
-            'https://htpbe.tech/api/v1/checks',
+            'https://api.htpbe.tech/v1/checks',
             params=params,
             headers={'Authorization': f'Bearer {api_key}'}
         )
@@ -638,10 +638,10 @@ Invalid query parameters.
 
 ```bash
 # Wrong - limit too high
-curl 'https://htpbe.tech/api/v1/checks?limit=1000'
+curl 'https://api.htpbe.tech/v1/checks?limit=1000'
 
 # Wrong - invalid status value
-curl 'https://htpbe.tech/api/v1/checks?status=yes'
+curl 'https://api.htpbe.tech/v1/checks?status=yes'
 ```
 
 ---
@@ -705,7 +705,7 @@ async function exportAllChecks() {
 
   while (true) {
     const response = await fetch(
-      `https://htpbe.tech/api/v1/checks?limit=${limit}&offset=${offset}`,
+      `https://api.htpbe.tech/v1/checks?limit=${limit}&offset=${offset}`,
       {
         headers: { Authorization: `Bearer ${process.env.HTPBE_API_KEY}` },
       }
@@ -743,7 +743,7 @@ async function calculateToolStats(toolName) {
 
   while (true) {
     const response = await fetch(
-      `https://htpbe.tech/api/v1/checks?tool=${encodeURIComponent(toolName)}&limit=500&offset=${offset}`,
+      `https://api.htpbe.tech/v1/checks?tool=${encodeURIComponent(toolName)}&limit=500&offset=${offset}`,
       { headers: { Authorization: `Bearer ${apiKey}` } }
     );
 
@@ -809,7 +809,7 @@ async function discoverAllTools() {
 
   // Download all checks
   while (true) {
-    const response = await fetch(`https://htpbe.tech/api/v1/checks?limit=500&offset=${offset}`, {
+    const response = await fetch(`https://api.htpbe.tech/v1/checks?limit=500&offset=${offset}`, {
       headers: { Authorization: `Bearer ${apiKey}` },
     });
 
@@ -886,7 +886,7 @@ def fetch_all_checks():
 
     while True:
         response = requests.get(
-            'https://htpbe.tech/api/v1/checks',
+            'https://api.htpbe.tech/v1/checks',
             params={'limit': limit, 'offset': offset},
             headers={'Authorization': f'Bearer {api_key}'}
         )
@@ -946,7 +946,7 @@ Monitor for high-risk patterns and send alerts:
 
 ```javascript
 async function securityMonitoring() {
-  const response = await fetch('https://htpbe.tech/api/v1/checks?status=modified&limit=500', {
+  const response = await fetch('https://api.htpbe.tech/v1/checks?status=modified&limit=500', {
     headers: { Authorization: `Bearer ${process.env.HTPBE_API_KEY}` },
   });
 

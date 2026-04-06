@@ -31,13 +31,13 @@ The key is auto-generated the first time you open the page. You can regenerate i
 
 ### Only predefined test URLs are accepted
 
-Test keys can only be used with mock URLs at `https://htpbe.tech/api/v1/test/`. Passing any other URL — including real PDFs, Vercel Blob URLs, or localhost — returns a 403 error:
+Test keys can only be used with mock URLs at `https://api.htpbe.tech/v1/test/`. Passing any other URL — including real PDFs, Vercel Blob URLs, or localhost — returns a 403 error:
 
 ```json
 {
   "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
   "code": "test_url_required",
-  "details": "Use URLs like: https://htpbe.tech/api/v1/test/clean.pdf, https://htpbe.tech/api/v1/test/modified-high.pdf, etc."
+  "details": "Use URLs like: https://api.htpbe.tech/v1/test/clean.pdf, https://api.htpbe.tech/v1/test/modified-high.pdf, etc."
 }
 ```
 
@@ -105,10 +105,10 @@ The same test URL always returns the same result fields, regardless of how many 
 **Step 1: Submit for analysis**
 
 ```bash
-curl -X POST https://htpbe.tech/api/v1/analyze \
+curl -X POST https://api.htpbe.tech/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/modified-high.pdf"}'
+  -d '{"url": "https://api.htpbe.tech/v1/test/modified-high.pdf"}'
 ```
 
 Response:
@@ -122,7 +122,7 @@ Response:
 **Step 2: Retrieve the full result**
 
 ```bash
-curl https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000005 \
+curl https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000005 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY"
 ```
 
@@ -174,7 +174,7 @@ Since IDs are deterministic, you can skip Step 1 and call `GET /result/00000000-
 
 ## Available Test URLs
 
-All test URLs live at `https://htpbe.tech/api/v1/test/`. Any other URL (including files you host yourself) will be rejected when using a test key.
+All test URLs live at `https://api.htpbe.tech/v1/test/`. Any other URL (including files you host yourself) will be rejected when using a test key.
 
 ### Clean / Original
 
@@ -182,9 +182,9 @@ Use these to test how your application handles documents that pass verification.
 
 | URL                                                  | `status` | Notes                                                                            |
 | ---------------------------------------------------- | -------- | -------------------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/clean.pdf`           | `intact` | Typical original document — full creator/producer metadata, no modification date |
-| `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`  | `intact` | Original document — metadata dates absent (e.g. auto-generated PDF)              |
-| `https://htpbe.tech/api/v1/test/signature-valid.pdf` | `intact` | Digitally signed, no post-sign modifications                                     |
+| `https://api.htpbe.tech/v1/test/clean.pdf`           | `intact` | Typical original document — full creator/producer metadata, no modification date |
+| `https://api.htpbe.tech/v1/test/clean-no-dates.pdf`  | `intact` | Original document — metadata dates absent (e.g. auto-generated PDF)              |
+| `https://api.htpbe.tech/v1/test/signature-valid.pdf` | `intact` | Digitally signed, no post-sign modifications                                     |
 
 ### Inconclusive (Consumer Software, Online Editor, or Scanned Document)
 
@@ -192,10 +192,10 @@ Use these to test how your application handles the case where integrity check is
 
 | URL                                                             | `status`       | Notes                                                                                        |
 | --------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-same.pdf`                 | `inconclusive` | LibreOffice origin — `status_reason: "consumer_software_origin"`                             |
-| `https://htpbe.tech/api/v1/test/inconclusive.pdf`               | `inconclusive` | Microsoft Excel origin — `status_reason: "consumer_software_origin"`                         |
-| `https://htpbe.tech/api/v1/test/inconclusive-online-editor.pdf` | `inconclusive` | iLovePDF origin — `status_reason: "online_editor_origin"`, metadata stripped by service      |
-| `https://htpbe.tech/api/v1/test/scanned-document.pdf`           | `inconclusive` | Pure raster scan — `status_reason: "scanned_document"`, no text layer, no fonts, no metadata |
+| `https://api.htpbe.tech/v1/test/dates-same.pdf`                 | `inconclusive` | LibreOffice origin — `status_reason: "consumer_software_origin"`                             |
+| `https://api.htpbe.tech/v1/test/inconclusive.pdf`               | `inconclusive` | Microsoft Excel origin — `status_reason: "consumer_software_origin"`                         |
+| `https://api.htpbe.tech/v1/test/inconclusive-online-editor.pdf` | `inconclusive` | iLovePDF origin — `status_reason: "online_editor_origin"`, metadata stripped by service      |
+| `https://api.htpbe.tech/v1/test/scanned-document.pdf`           | `inconclusive` | Pure raster scan — `status_reason: "scanned_document"`, no text layer, no fonts, no metadata |
 
 ### Modified — Graduated Severity Levels
 
@@ -203,14 +203,14 @@ Use these to test conditional logic and UI states for different levels of tamper
 
 | URL                                                      | `status`   | Notes                                                    |
 | -------------------------------------------------------- | ---------- | -------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`      | `modified` | Modification date 14 days after creation date            |
-| `https://htpbe.tech/api/v1/test/modified-low.pdf`        | `modified` | Minor modification — one incremental update detected     |
-| `https://htpbe.tech/api/v1/test/modified-medium.pdf`     | `modified` | Moderate modification — creator/producer mismatch        |
-| `https://htpbe.tech/api/v1/test/multiple-xref.pdf`       | `modified` | 4 cross-reference tables detected                        |
-| `https://htpbe.tech/api/v1/test/incremental-updates.pdf` | `modified` | 6 incremental update sections                            |
-| `https://htpbe.tech/api/v1/test/embedded-files.pdf`      | `modified` | Embedded file attachments added after creation           |
-| `https://htpbe.tech/api/v1/test/javascript.pdf`          | `modified` | JavaScript code embedded in PDF                          |
-| `https://htpbe.tech/api/v1/test/modified-high.pdf`       | `modified` | Significant modification — multiple updates, tool change |
+| `https://api.htpbe.tech/v1/test/dates-mismatch.pdf`      | `modified` | Modification date 14 days after creation date            |
+| `https://api.htpbe.tech/v1/test/modified-low.pdf`        | `modified` | Minor modification — one incremental update detected     |
+| `https://api.htpbe.tech/v1/test/modified-medium.pdf`     | `modified` | Moderate modification — creator/producer mismatch        |
+| `https://api.htpbe.tech/v1/test/multiple-xref.pdf`       | `modified` | 4 cross-reference tables detected                        |
+| `https://api.htpbe.tech/v1/test/incremental-updates.pdf` | `modified` | 6 incremental update sections                            |
+| `https://api.htpbe.tech/v1/test/embedded-files.pdf`      | `modified` | Embedded file attachments added after creation           |
+| `https://api.htpbe.tech/v1/test/javascript.pdf`          | `modified` | JavaScript code embedded in PDF                          |
+| `https://api.htpbe.tech/v1/test/modified-high.pdf`       | `modified` | Significant modification — multiple updates, tool change |
 
 ### Critical Tampering
 
@@ -218,10 +218,10 @@ Use these to test how your application handles severe tampering alerts.
 
 | URL                                                      | `status`   | Notes                                                               |
 | -------------------------------------------------------- | ---------- | ------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/modified-after-sign.pdf` | `modified` | Modified after digital signing — signature invalidated              |
-| `https://htpbe.tech/api/v1/test/signature-removed.pdf`   | `modified` | Digital signature was removed from the document                     |
-| `https://htpbe.tech/api/v1/test/modified-critical.pdf`   | `modified` | Signature removed + JavaScript detected + 8-step modification chain |
-| `https://htpbe.tech/api/v1/test/both-threats.pdf`        | `modified` | JavaScript + embedded files + signature removed — maximum severity  |
+| `https://api.htpbe.tech/v1/test/modified-after-sign.pdf` | `modified` | Modified after digital signing — signature invalidated              |
+| `https://api.htpbe.tech/v1/test/signature-removed.pdf`   | `modified` | Digital signature was removed from the document                     |
+| `https://api.htpbe.tech/v1/test/modified-critical.pdf`   | `modified` | Signature removed + JavaScript detected + 8-step modification chain |
+| `https://api.htpbe.tech/v1/test/both-threats.pdf`        | `modified` | JavaScript + embedded files + signature removed — maximum severity  |
 
 ### Special Field Scenarios
 
@@ -229,8 +229,8 @@ Use these to test fields that require specific scenarios not covered by the stan
 
 | URL                                                        | Key field                    | Notes                                                                                          |
 | ---------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/date-sequence-invalid.pdf` | `date_sequence_valid: false` | Modification date is before creation date — impossible in normal workflow, indicates tampering |
-| `https://htpbe.tech/api/v1/test/outdated-version.pdf`      | `outdated_warning` present   | Analyzed with algorithm version `1.0.0` — triggers `outdated_warning` in the result            |
+| `https://api.htpbe.tech/v1/test/date-sequence-invalid.pdf` | `date_sequence_valid: false` | Modification date is before creation date — impossible in normal workflow, indicates tampering |
+| `https://api.htpbe.tech/v1/test/outdated-version.pdf`      | `outdated_warning` present   | Analyzed with algorithm version `1.0.0` — triggers `outdated_warning` in the result            |
 
 ### Error Triggers
 
@@ -238,7 +238,7 @@ Use these to test error-handling paths. Unlike mock result URLs, these return an
 
 | URL                                              | HTTP Status | `code`             | Notes                                                                                                            |
 | ------------------------------------------------ | ----------- | ------------------ | ---------------------------------------------------------------------------------------------------------------- |
-| `https://htpbe.tech/api/v1/test/trigger-402.pdf` | `402`       | `payment_required` | Simulates no active subscription. Only testable via this trigger — test keys bypass the real subscription check. |
+| `https://api.htpbe.tech/v1/test/trigger-402.pdf` | `402`       | `payment_required` | Simulates no active subscription. Only testable via this trigger — test keys bypass the real subscription check. |
 
 ---
 
@@ -250,14 +250,14 @@ Verify that your integration correctly handles the two-step flow.
 
 ```bash
 # Step 1: Submit for analysis — returns a synthetic UUID
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s -X POST https://api.htpbe.tech/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://htpbe.tech/api/v1/test/clean.pdf"}'
+  -d '{"url": "https://api.htpbe.tech/v1/test/clean.pdf"}'
 # → { "id": "00000000-0000-4000-8000-000000000001" }
 
 # Step 2: Retrieve the full result using the synthetic ID
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000001 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" | jq .
 ```
 
@@ -277,19 +277,19 @@ The API returns three possible `status` values. Since IDs are deterministic, you
 
 ```bash
 # intact
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000001 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000001 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status'
 # → "intact"
 
 # modified
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000005 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000005 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status'
 # → "modified"
 
 # inconclusive (consumer software origin)
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000011 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000011 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status, .status_reason, .origin'
 # → "inconclusive"
@@ -297,7 +297,7 @@ curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000011 \
 # → { "type": "consumer_software", "software": "Microsoft Excel" }
 
 # inconclusive (online editor origin)
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000014 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000014 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status, .status_reason, .origin'
 # → "inconclusive"
@@ -305,7 +305,7 @@ curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000014 \
 # → { "type": "online_editor", "software": "iLovePDF" }
 
 # inconclusive (scanned document)
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000015 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000015 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '.status, .status_reason, .origin'
 # → "inconclusive"
@@ -321,11 +321,11 @@ Test how your code handles each severity level:
 
 | Severity | Test URL                                                                                                                                                       |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| None     | `https://htpbe.tech/api/v1/test/clean.pdf`                                                                                                                     |
-| Minor    | `https://htpbe.tech/api/v1/test/modified-low.pdf`                                                                                                              |
-| Moderate | `https://htpbe.tech/api/v1/test/multiple-xref.pdf`                                                                                                             |
-| High     | `https://htpbe.tech/api/v1/test/incremental-updates.pdf`, `https://htpbe.tech/api/v1/test/modified-high.pdf`                                                   |
-| Critical | `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`, `https://htpbe.tech/api/v1/test/signature-removed.pdf`, `https://htpbe.tech/api/v1/test/both-threats.pdf` |
+| None     | `https://api.htpbe.tech/v1/test/clean.pdf`                                                                                                                     |
+| Minor    | `https://api.htpbe.tech/v1/test/modified-low.pdf`                                                                                                              |
+| Moderate | `https://api.htpbe.tech/v1/test/multiple-xref.pdf`                                                                                                             |
+| High     | `https://api.htpbe.tech/v1/test/incremental-updates.pdf`, `https://api.htpbe.tech/v1/test/modified-high.pdf`                                                   |
+| Critical | `https://api.htpbe.tech/v1/test/dates-mismatch.pdf`, `https://api.htpbe.tech/v1/test/signature-removed.pdf`, `https://api.htpbe.tech/v1/test/both-threats.pdf` |
 
 ---
 
@@ -333,7 +333,7 @@ Test how your code handles each severity level:
 
 ```bash
 # Valid signature — should not trigger alerts
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-00000000000b \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-00000000000b \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{has_digital_signature, signature_count, signature_removed, modifications_after_signature}'
 ```
@@ -351,7 +351,7 @@ Expected:
 
 ```bash
 # Removed signature — critical alert
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-00000000000c \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-00000000000c \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{has_digital_signature, signature_count, signature_removed, modifications_after_signature}'
 ```
@@ -374,7 +374,7 @@ Expected:
 Test that your UI handles JavaScript and embedded file warnings:
 
 ```bash
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000010 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000010 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{has_javascript, has_embedded_files, modification_markers}'
 ```
@@ -396,7 +396,7 @@ Expected:
 Not all PDFs contain full metadata. Verify your application handles null values gracefully:
 
 ```bash
-curl -s https://htpbe.tech/api/v1/result/00000000-0000-4000-8000-000000000002 \
+curl -s https://api.htpbe.tech/v1/result/00000000-0000-4000-8000-000000000002 \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   | jq '{creation_date, modification_date, creator, producer}'
 ```
@@ -419,7 +419,7 @@ Expected:
 Verify that your integration correctly handles the error returned when a test key is used with a non-test URL.
 
 ```bash
-curl -s -X POST https://htpbe.tech/api/v1/analyze \
+curl -s -X POST https://api.htpbe.tech/v1/analyze \
   -H "Authorization: Bearer htpbe_test_YOUR_TEST_KEY" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com/invoice.pdf"}'
@@ -431,7 +431,7 @@ Expected HTTP status: `403`
 {
   "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
   "code": "test_url_required",
-  "details": "Use URLs like: https://htpbe.tech/api/v1/test/clean.pdf, https://htpbe.tech/api/v1/test/modified-high.pdf, etc."
+  "details": "Use URLs like: https://api.htpbe.tech/v1/test/clean.pdf, https://api.htpbe.tech/v1/test/modified-high.pdf, etc."
 }
 ```
 
@@ -443,10 +443,10 @@ Some error codes and edge cases cannot be triggered by the normal test mock flow
 
 | Scenario                             | How to test                                                                                                                                                        |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `402 payment_required`               | Use `https://htpbe.tech/api/v1/test/trigger-402.pdf` — test keys skip the real subscription check, so this is the only way to reach this code path with a test key |
+| `402 payment_required`               | Use `https://api.htpbe.tech/v1/test/trigger-402.pdf` — test keys skip the real subscription check, so this is the only way to reach this code path with a test key |
 | `403 inactive_client`                | Cannot be triggered with a test key. Test using a live key on a deactivated account (contact support)                                                              |
-| `outdated_warning` field             | Use `https://htpbe.tech/api/v1/test/outdated-version.pdf` — this mock returns `algorithm_version: "1.0.0"`, which triggers `outdated_warning` in the response      |
-| `date_sequence_valid: false`         | Use `https://htpbe.tech/api/v1/test/date-sequence-invalid.pdf` — modification date is set before creation date                                                     |
+| `outdated_warning` field             | Use `https://api.htpbe.tech/v1/test/outdated-version.pdf` — this mock returns `algorithm_version: "1.0.0"`, which triggers `outdated_warning` in the response      |
+| `date_sequence_valid: false`         | Use `https://api.htpbe.tech/v1/test/date-sequence-invalid.pdf` — modification date is set before creation date                                                     |
 | `metadata_completeness_score` ranges | Test mocks return a variety of scores (0–80). See the `metadata_completeness_score` column in the full response reference below for per-mock values                |
 
 ---
@@ -456,7 +456,7 @@ Some error codes and edge cases cannot be triggered by the normal test mock flow
 ### Node.js / TypeScript
 
 ```typescript
-const BASE_URL = 'https://htpbe.tech/api/v1';
+const BASE_URL = 'https://api.htpbe.tech/v1';
 const TEST_KEY = process.env.HTPBE_TEST_KEY; // htpbe_test_...
 
 async function analyzeAndGetResult(filename: string) {
@@ -528,7 +528,7 @@ console.assert(result.status === 'intact');
 import os
 import requests
 
-BASE_URL = "https://htpbe.tech/api/v1"
+BASE_URL = "https://api.htpbe.tech/v1"
 TEST_KEY = os.getenv("HTPBE_TEST_KEY")  # htpbe_test_...
 
 def analyze_and_get_result(filename: str) -> dict:
@@ -616,7 +616,7 @@ Synthetic check IDs are only accessible with a test key. Calling `GET /api/v1/re
 
 ### Using a test URL with a live key
 
-Live keys download and analyze the URL as a real file. Passing `https://htpbe.tech/api/v1/test/clean.pdf` with a live key will attempt to download a file that does not exist and return a 400 download error.
+Live keys download and analyze the URL as a real file. Passing `https://api.htpbe.tech/v1/test/clean.pdf` with a live key will attempt to download a file that does not exist and return a 400 download error.
 
 **Fix:** Test URLs only work with test keys. Keep the two environments separate.
 
@@ -659,7 +659,7 @@ See [GET /result](./api/result.md) for the complete flat schema with exact field
 
 ### `clean.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/clean.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/clean.pdf`
 **ID:** `00000000-0000-4000-8000-000000000001`
 
 Original document, no modifications.
@@ -697,7 +697,7 @@ Original document, no modifications.
 
 ### `clean-no-dates.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/clean-no-dates.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/clean-no-dates.pdf`
 **ID:** `00000000-0000-4000-8000-000000000002`
 
 Original document, metadata dates absent (common in auto-generated PDFs).
@@ -735,7 +735,7 @@ Original document, metadata dates absent (common in auto-generated PDFs).
 
 ### `dates-same.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/dates-same.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/dates-same.pdf`
 **ID:** `00000000-0000-4000-8000-000000000008`
 
 LibreOffice origin — integrity check not applicable.
@@ -777,7 +777,7 @@ LibreOffice origin — integrity check not applicable.
 
 ### `inconclusive.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/inconclusive.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/inconclusive.pdf`
 **ID:** `00000000-0000-4000-8000-000000000011`
 
 Microsoft Excel origin — integrity check not applicable.
@@ -819,7 +819,7 @@ Microsoft Excel origin — integrity check not applicable.
 
 ### `inconclusive-online-editor.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/inconclusive-online-editor.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/inconclusive-online-editor.pdf`
 **ID:** `00000000-0000-4000-8000-000000000014`
 
 iLovePDF origin — processed through an online editing service, metadata stripped.
@@ -861,7 +861,7 @@ iLovePDF origin — processed through an online editing service, metadata stripp
 
 ### `scanned-document.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/scanned-document.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/scanned-document.pdf`
 **ID:** `00000000-0000-4000-8000-000000000015`
 
 Pure raster scan — no text layer, no fonts, no metadata. Anyone can print and scan a document.
@@ -903,7 +903,7 @@ Pure raster scan — no text layer, no fonts, no metadata. Anyone can print and 
 
 ### `signature-valid.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/signature-valid.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/signature-valid.pdf`
 **ID:** `00000000-0000-4000-8000-00000000000b`
 
 Digitally signed, no post-sign modifications.
@@ -941,7 +941,7 @@ Digitally signed, no post-sign modifications.
 
 ### `dates-mismatch.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/dates-mismatch.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/dates-mismatch.pdf`
 **ID:** `00000000-0000-4000-8000-000000000007`
 
 Modification date 14 days after creation date.
@@ -979,7 +979,7 @@ Modification date 14 days after creation date.
 
 ### `modified-low.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/modified-low.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/modified-low.pdf`
 **ID:** `00000000-0000-4000-8000-000000000003`
 
 Minor modification — one incremental update.
@@ -1017,7 +1017,7 @@ Minor modification — one incremental update.
 
 ### `modified-medium.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/modified-medium.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/modified-medium.pdf`
 **ID:** `00000000-0000-4000-8000-000000000004`
 
 Moderate modification — creator/producer mismatch.
@@ -1055,7 +1055,7 @@ Moderate modification — creator/producer mismatch.
 
 ### `multiple-xref.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/multiple-xref.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/multiple-xref.pdf`
 **ID:** `00000000-0000-4000-8000-00000000000a`
 
 4 cross-reference tables detected.
@@ -1093,7 +1093,7 @@ Moderate modification — creator/producer mismatch.
 
 ### `incremental-updates.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/incremental-updates.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/incremental-updates.pdf`
 **ID:** `00000000-0000-4000-8000-000000000009`
 
 6 incremental update sections.
@@ -1131,7 +1131,7 @@ Moderate modification — creator/producer mismatch.
 
 ### `embedded-files.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/embedded-files.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/embedded-files.pdf`
 **ID:** `00000000-0000-4000-8000-00000000000f`
 
 Embedded file attachments added after creation.
@@ -1169,7 +1169,7 @@ Embedded file attachments added after creation.
 
 ### `javascript.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/javascript.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/javascript.pdf`
 **ID:** `00000000-0000-4000-8000-00000000000e`
 
 JavaScript code embedded in the PDF.
@@ -1207,7 +1207,7 @@ JavaScript code embedded in the PDF.
 
 ### `modified-high.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/modified-high.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/modified-high.pdf`
 **ID:** `00000000-0000-4000-8000-000000000005`
 
 Significant modification — multiple saves, tool changed to PDFtk.
@@ -1245,7 +1245,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
 
 ### `modified-after-sign.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/modified-after-sign.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/modified-after-sign.pdf`
 **ID:** `00000000-0000-4000-8000-00000000000d`
 
 Modified after digital signing — signature is now invalidated.
@@ -1283,7 +1283,7 @@ Modified after digital signing — signature is now invalidated.
 
 ### `signature-removed.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/signature-removed.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/signature-removed.pdf`
 **ID:** `00000000-0000-4000-8000-00000000000c`
 
 Digital signature was removed from the document.
@@ -1321,7 +1321,7 @@ Digital signature was removed from the document.
 
 ### `modified-critical.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/modified-critical.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/modified-critical.pdf`
 **ID:** `00000000-0000-4000-8000-000000000006`
 
 Signature removed + JavaScript detected + 8-step modification chain.
@@ -1359,7 +1359,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
 
 ### `both-threats.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/both-threats.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/both-threats.pdf`
 **ID:** `00000000-0000-4000-8000-000000000010`
 
 JavaScript + embedded files + signature removed. Maximum severity.
@@ -1397,7 +1397,7 @@ JavaScript + embedded files + signature removed. Maximum severity.
 
 ### `date-sequence-invalid.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/date-sequence-invalid.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/date-sequence-invalid.pdf`
 **ID:** `00000000-0000-4000-8000-000000000012`
 
 Modification date is before creation date — impossible in a normal workflow, indicates date field tampering.
@@ -1437,7 +1437,7 @@ Modification date is before creation date — impossible in a normal workflow, i
 
 ### `outdated-version.pdf`
 
-**URL:** `https://htpbe.tech/api/v1/test/outdated-version.pdf`
+**URL:** `https://api.htpbe.tech/v1/test/outdated-version.pdf`
 **ID:** `00000000-0000-4000-8000-000000000013`
 
 Analyzed with algorithm version `1.0.0` — triggers `outdated_warning` in the result.

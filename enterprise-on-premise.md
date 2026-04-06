@@ -2,7 +2,7 @@
 
 **HTPBE is available for on-premise deployment** — run the PDF analysis engine entirely within your own infrastructure. Documents never leave your network.
 
-→ **Contact:** iurii@rogulia.fi to discuss requirements and pricing.
+→ **Contact:** mail@htpbe.tech to discuss requirements and pricing.
 
 ---
 
@@ -103,7 +103,7 @@ volumes:
 
 ### Kubernetes
 
-A Helm chart is available on request. Contact iurii@rogulia.fi.
+A Helm chart is available on request. Contact mail@htpbe.tech.
 
 ---
 
@@ -179,7 +179,7 @@ No annual contracts. Cancel anytime.
 ## Contact
 
 **Iurii Rogulia** -- Founder
-Email: iurii@rogulia.fi
+Email: mail@htpbe.tech
 Web: [htpbe.tech/api](https://htpbe.tech/api)
 
 For pricing, requirements discussion, or a demo -- email directly. Response within 24 hours.

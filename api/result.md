@@ -5,7 +5,7 @@ Retrieve a previously completed PDF analysis by its unique check ID.
 ## Endpoint
 
 ```
-GET https://htpbe.tech/api/v1/result/{id}
+GET https://api.htpbe.tech/v1/result/{id}
 ```
 
 ## Authentication
@@ -57,7 +57,7 @@ Authorization: Bearer YOUR_API_KEY
 ### Example Request
 
 ```bash
-curl https://htpbe.tech/api/v1/result/506a6b1b-1360-48a2-b389-abb346f85d04 \
+curl https://api.htpbe.tech/v1/result/506a6b1b-1360-48a2-b389-abb346f85d04 \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```
 
@@ -65,7 +65,7 @@ curl https://htpbe.tech/api/v1/result/506a6b1b-1360-48a2-b389-abb346f85d04 \
 // Node.js / TypeScript
 const checkId = '506a6b1b-1360-48a2-b389-abb346f85d04';
 
-const response = await fetch(`https://htpbe.tech/api/v1/result/${checkId}`, {
+const response = await fetch(`https://api.htpbe.tech/v1/result/${checkId}`, {
   headers: {
     Authorization: `Bearer ${process.env.HTPBE_API_KEY}`,
   },
@@ -82,7 +82,7 @@ import os
 check_id = '506a6b1b-1360-48a2-b389-abb346f85d04'
 
 response = requests.get(
-    f'https://htpbe.tech/api/v1/result/{check_id}',
+    f'https://api.htpbe.tech/v1/result/{check_id}',
     headers={
         'Authorization': f"Bearer {os.getenv('HTPBE_API_KEY')}"
     }
@@ -780,7 +780,7 @@ await db.documents.create({
 });
 
 // Later, retrieve full details for audit
-const auditData = await fetch(`https://htpbe.tech/api/v1/result/${doc.htpbe_check_id}`, {
+const auditData = await fetch(`https://api.htpbe.tech/v1/result/${doc.htpbe_check_id}`, {
   headers: { Authorization: `Bearer ${apiKey}` },
 });
 ```

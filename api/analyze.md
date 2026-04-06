@@ -5,7 +5,7 @@ Analyze a PDF document from a publicly accessible URL to detect modifications an
 ## Endpoint
 
 ```
-POST https://htpbe.tech/api/v1/analyze
+POST https://api.htpbe.tech/v1/analyze
 ```
 
 ## Authentication
@@ -71,7 +71,7 @@ Requests beyond your monthly quota are charged at your plan's overage rate and b
 ### Example Request
 
 ```bash
-curl -X POST https://htpbe.tech/api/v1/analyze \
+curl -X POST https://api.htpbe.tech/v1/analyze \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef" \
   -H "Content-Type: application/json" \
   -d '{
@@ -81,7 +81,7 @@ curl -X POST https://htpbe.tech/api/v1/analyze \
 
 ```javascript
 // Node.js / TypeScript
-const response = await fetch('https://htpbe.tech/api/v1/analyze', {
+const response = await fetch('https://api.htpbe.tech/v1/analyze', {
   method: 'POST',
   headers: {
     Authorization: `Bearer ${process.env.HTPBE_API_KEY}`,
@@ -101,7 +101,7 @@ import requests
 import os
 
 response = requests.post(
-    'https://htpbe.tech/api/v1/analyze',
+    'https://api.htpbe.tech/v1/analyze',
     headers={
         'Authorization': f"Bearer {os.getenv('HTPBE_API_KEY')}",
         'Content-Type': 'application/json'
@@ -126,7 +126,7 @@ Analysis is performed synchronously. The response contains only the check ID. A 
 
 | Header     | Description                                                                                                                                    |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Location` | Full URL of the result: `https://htpbe.tech/api/v1/result/{id}` (e.g. `https://htpbe.tech/api/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21`) |
+| `Location` | Full URL of the result: `https://api.htpbe.tech/v1/result/{id}` (e.g. `https://api.htpbe.tech/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21`) |
 
 #### Response Structure
 
@@ -159,7 +159,7 @@ Analysis is performed synchronously. The response contains only the check ID. A 
 
 ```javascript
 // Step 1: Submit PDF for analysis
-const analyzeRes = await fetch('https://htpbe.tech/api/v1/analyze', {
+const analyzeRes = await fetch('https://api.htpbe.tech/v1/analyze', {
   method: 'POST',
   headers: {
     Authorization: `Bearer ${process.env.HTPBE_API_KEY}`,
@@ -171,7 +171,7 @@ const analyzeRes = await fetch('https://htpbe.tech/api/v1/analyze', {
 const { id } = await analyzeRes.json();
 
 // Step 2: Retrieve full results
-const resultRes = await fetch(`https://htpbe.tech/api/v1/result/${id}`, {
+const resultRes = await fetch(`https://api.htpbe.tech/v1/result/${id}`, {
   headers: { Authorization: `Bearer ${process.env.HTPBE_API_KEY}` },
 });
 
@@ -424,7 +424,7 @@ Access forbidden due to account status.
 {
   "error": "Test API keys can only be used with test URLs. See documentation for available test URLs.",
   "code": "test_url_required",
-  "details": "Use URLs like: https://htpbe.tech/api/v1/test/clean.pdf, https://htpbe.tech/api/v1/test/modified-high.pdf, etc."
+  "details": "Use URLs like: https://api.htpbe.tech/v1/test/clean.pdf, https://api.htpbe.tech/v1/test/modified-high.pdf, etc."
 }
 ```
 
