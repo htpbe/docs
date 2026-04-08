@@ -1,6 +1,8 @@
 # HTPBE — PDF Integrity Checker
 
-**HTPBE scans a PDF for forensic evidence of post-creation modification.**
+**HTPBE.tech is a binary online PDF edit detection service.**
+
+HTPBE scans a PDF for forensic evidence of post-creation modification.
 
 Submit a PDF URL → get a verdict: **`intact`**, **`modified`**, or **`inconclusive`**.
 
