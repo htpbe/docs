@@ -1,0 +1,961 @@
+{
+  "info": {
+    "name": "HTPBE API",
+    "description": "PDF authenticity checker API — detects post-creation modifications in PDF documents.\n\n**Base URL:** `https://api.htpbe.tech/v1`\n\n**Authentication:** Set `api_key` variable to your live key (`htpbe_live_...`) and `test_api_key` to your test key (`htpbe_test_...`).\n\n**Two-step flow:** `POST /analyze` returns only `{ \"id\": \"...\" }`. Call `GET /result/{id}` to get the full verdict. The test script on the Analyze request automatically sets the `check_id` variable.\n\nGet your API keys at https://htpbe.tech/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.htpbe.tech/v1",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "htpbe_live_YOUR_KEY",
+      "type": "string",
+      "description": "Your live API key. Get it at https://htpbe.tech/dashboard/api-keys"
+    },
+    {
+      "key": "test_api_key",
+      "value": "htpbe_test_YOUR_KEY",
+      "type": "string",
+      "description": "Your test API key. Get it at https://htpbe.tech/dashboard/api-keys"
+    },
+    {
+      "key": "check_id",
+      "value": "",
+      "type": "string",
+      "description": "Auto-filled by the 'Analyze PDF' test script after a successful POST /analyze"
+    }
+  ],
+  "item": [
+    {
+      "name": "Analyze PDF",
+      "item": [
+        {
+          "name": "POST Analyze — minimal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-save check ID so 'Get Result' request works immediately",
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('check_id', json.id);",
+                  "    pm.test('Response has id', () => pm.expect(json.id).to.be.a('string'));",
+                  "    console.log('check_id set to:', json.id);",
+                  "}",
+                  "",
+                  "pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Location header present', () => pm.response.to.have.header('Location'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/documents/contract.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Submit a PDF URL for analysis. Returns a check ID. Call `GET /result/{id}` to retrieve the verdict.\n\n**Auto-saves `check_id`** — the test script captures the returned `id` into the collection variable so the 'Get Result' request works immediately after."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "key": "Location",
+                  "value": "https://api.htpbe.tech/v1/result/3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21"
+                }
+              ],
+              "body": "{\n  \"id\": \"3f9c8b7a-2e1d-4c5f-9b8e-7a6d5c4b3a21\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "POST Analyze — with original_filename",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.collectionVariables.set('check_id', json.id);",
+                  "    pm.test('Response has id', () => pm.expect(json.id).to.be.a('string'));",
+                  "}",
+                  "",
+                  "pm.test('Status code is 201', () => pm.response.to.have.status(201));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/documents/abc123-uuid.pdf\",\n  \"original_filename\": \"invoice-2024-01.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Use `original_filename` when the URL does not reflect the real filename (e.g. after upload to S3/R2 with a UUID key). The provided name is stored and returned in results."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Get Result",
+      "item": [
+        {
+          "name": "GET Result by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Has status field', () => pm.expect(['intact', 'modified', 'inconclusive']).to.include(json.status));",
+                  "    pm.test('Has modification_confidence', () => pm.expect(json).to.have.property('modification_confidence'));",
+                  "    pm.test('Has modification_markers array', () => pm.expect(json.modification_markers).to.be.an('array'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/result/{{check_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["result", "{{check_id}}"]
+            },
+            "description": "Retrieve the full analysis result for a check. `check_id` is auto-set by the 'POST Analyze' test script, or paste a UUID directly.\n\n**Key verdict fields:**\n- `status`: `intact` | `modified` | `inconclusive`\n- `modification_confidence`: `certain` | `high` | `none` | `null`\n- `modification_markers`: array of specific findings, strongest first\n- `status_reason`: only present when `status === \"inconclusive\"`"
+          },
+          "response": [
+            {
+              "name": "200 OK — modified (certain confidence)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"506a6b1b-1360-48a2-b389-abb346f85d04\",\n  \"filename\": \"contract.pdf\",\n  \"check_date\": 1736542583,\n  \"file_size\": 245632,\n  \"algorithm_version\": \"2.11.8\",\n  \"current_algorithm_version\": \"2.11.8\",\n  \"status\": \"modified\",\n  \"origin\": {\n    \"type\": \"institutional\",\n    \"software\": null\n  },\n  \"creation_date\": 1704110400,\n  \"modification_date\": 1707840000,\n  \"creator\": \"Adobe Acrobat Pro DC\",\n  \"producer\": \"Adobe PDF Library 15.0\",\n  \"modification_confidence\": \"certain\",\n  \"date_sequence_valid\": true,\n  \"metadata_completeness_score\": 90,\n  \"xref_count\": 2,\n  \"has_incremental_updates\": true,\n  \"update_chain_length\": 3,\n  \"pdf_version\": \"1.7\",\n  \"has_digital_signature\": false,\n  \"signature_count\": 0,\n  \"signature_removed\": true,\n  \"modifications_after_signature\": false,\n  \"page_count\": 12,\n  \"object_count\": 487,\n  \"has_javascript\": false,\n  \"has_embedded_files\": false,\n  \"modification_markers\": [\n    \"Digital signature was removed\",\n    \"Different creation and modification dates\"\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "200 OK — intact",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"b7e2d8f1-2e1d-4c5f-9b8e-7a6d5c4b3a21\",\n  \"filename\": \"original-report.pdf\",\n  \"check_date\": 1736542000,\n  \"file_size\": 1048576,\n  \"algorithm_version\": \"2.11.8\",\n  \"current_algorithm_version\": \"2.11.8\",\n  \"status\": \"intact\",\n  \"origin\": {\n    \"type\": \"institutional\",\n    \"software\": null\n  },\n  \"creation_date\": 1735689600,\n  \"modification_date\": 1735689600,\n  \"creator\": \"Adobe Acrobat Pro DC\",\n  \"producer\": \"Adobe PDF Library 15.0\",\n  \"modification_confidence\": \"none\",\n  \"date_sequence_valid\": true,\n  \"metadata_completeness_score\": 92,\n  \"xref_count\": 1,\n  \"has_incremental_updates\": false,\n  \"update_chain_length\": 1,\n  \"pdf_version\": \"1.7\",\n  \"has_digital_signature\": true,\n  \"signature_count\": 1,\n  \"signature_removed\": false,\n  \"modifications_after_signature\": false,\n  \"page_count\": 8,\n  \"object_count\": 320,\n  \"has_javascript\": false,\n  \"has_embedded_files\": false,\n  \"modification_markers\": []\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "200 OK — inconclusive (consumer software)",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"00000000-0000-4000-8000-000000000011\",\n  \"filename\": \"spreadsheet-export.pdf\",\n  \"check_date\": null,\n  \"file_size\": 204800,\n  \"algorithm_version\": \"2.11.8\",\n  \"current_algorithm_version\": \"2.11.8\",\n  \"status\": \"inconclusive\",\n  \"status_reason\": \"consumer_software_origin\",\n  \"origin\": {\n    \"type\": \"consumer_software\",\n    \"software\": \"Microsoft Excel\"\n  },\n  \"creation_date\": 1709283600,\n  \"modification_date\": 1709283600,\n  \"creator\": \"Microsoft Excel 2019\",\n  \"producer\": \"Microsoft: Print To PDF\",\n  \"modification_confidence\": \"none\",\n  \"date_sequence_valid\": true,\n  \"metadata_completeness_score\": 65,\n  \"xref_count\": 1,\n  \"has_incremental_updates\": false,\n  \"update_chain_length\": 1,\n  \"pdf_version\": \"1.7\",\n  \"has_digital_signature\": false,\n  \"signature_count\": 0,\n  \"signature_removed\": false,\n  \"modifications_after_signature\": false,\n  \"page_count\": 1,\n  \"object_count\": 82,\n  \"has_javascript\": false,\n  \"has_embedded_files\": false,\n  \"modification_markers\": []\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "List Checks",
+      "item": [
+        {
+          "name": "GET Checks — default (last 100)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Response has data array', () => pm.expect(json.data).to.be.an('array'));",
+                  "    pm.test('Response has total', () => pm.expect(json.total).to.be.a('number'));",
+                  "    pm.test('Response has has_more', () => pm.expect(json.has_more).to.be.a('boolean'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks",
+              "host": ["{{base_url}}"],
+              "path": ["checks"]
+            },
+            "description": "Returns the first 100 checks (newest first). Use `has_more` and `offset` to paginate."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"a3f5c9d2-1360-48a2-b389-abb346f85d04\",\n      \"filename\": \"invoice-2024-01.pdf\",\n      \"check_date\": 1738368000,\n      \"status\": \"modified\",\n      \"metadata_completeness_score\": 85,\n      \"creator\": \"Microsoft Word for Microsoft 365\",\n      \"producer\": \"Adobe PDF Library 15.0\",\n      \"file_size\": 524288,\n      \"page_count\": 5,\n      \"pdf_version\": \"1.7\",\n      \"creation_date\": 1735689600,\n      \"modification_date\": 1738281600,\n      \"has_javascript\": false,\n      \"has_digital_signature\": true,\n      \"has_embedded_files\": false,\n      \"has_incremental_updates\": true,\n      \"update_chain_length\": 3,\n      \"object_count\": 234\n    },\n    {\n      \"id\": \"b7e2d8f1-2e1d-4c5f-9b8e-7a6d5c4b3a21\",\n      \"filename\": \"contract.pdf\",\n      \"check_date\": 1738281600,\n      \"status\": \"intact\",\n      \"metadata_completeness_score\": 92,\n      \"creator\": \"Adobe Acrobat Pro DC\",\n      \"producer\": \"Adobe PDF Library 15.0\",\n      \"file_size\": 1048576,\n      \"page_count\": 12,\n      \"pdf_version\": \"1.7\",\n      \"creation_date\": 1735689600,\n      \"modification_date\": 1735689600,\n      \"has_javascript\": false,\n      \"has_digital_signature\": true,\n      \"has_embedded_files\": false,\n      \"has_incremental_updates\": false,\n      \"update_chain_length\": 1,\n      \"object_count\": 567\n    }\n  ],\n  \"total\": 1250,\n  \"limit\": 100,\n  \"offset\": 0,\n  \"has_more\": true\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "GET Checks — filter by status=modified",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks?status=modified&limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["checks"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "modified",
+                  "description": "intact | modified | inconclusive"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Return only checks where modification evidence was found."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Checks — filter by date range",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks?from_date=1743465600&to_date=1746057600&limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["checks"],
+              "query": [
+                {
+                  "key": "from_date",
+                  "value": "1743465600",
+                  "description": "Unix timestamp (seconds) — April 1, 2025 UTC"
+                },
+                {
+                  "key": "to_date",
+                  "value": "1746057600",
+                  "description": "Unix timestamp (seconds) — April 30, 2025 UTC"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            },
+            "description": "Return checks submitted in April 2025. Adjust `from_date` and `to_date` to your target range."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Checks — filter by tool (producer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks?producer=Adobe PDF Library 15.0&limit=500",
+              "host": ["{{base_url}}"],
+              "path": ["checks"],
+              "query": [
+                {
+                  "key": "producer",
+                  "value": "Adobe PDF Library 15.0",
+                  "description": "Case-sensitive exact match"
+                },
+                {
+                  "key": "limit",
+                  "value": "500"
+                }
+              ]
+            },
+            "description": "Find all PDFs generated by a specific producer tool. Filters are case-sensitive and exact — use the value exactly as it appears in the result."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Checks — paginate (page 2)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks?limit=100&offset=100",
+              "host": ["{{base_url}}"],
+              "path": ["checks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                },
+                {
+                  "key": "offset",
+                  "value": "100",
+                  "description": "Skip first 100 results to get page 2"
+                }
+              ]
+            },
+            "description": "Get checks 101–200. Continue incrementing `offset` by `limit` until `has_more` is `false`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Checks — bulk export (max page)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks?limit=500&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["checks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "500",
+                  "description": "Maximum allowed per request"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Maximum page size for bulk export. Repeat with increasing `offset` until `has_more` is `false`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Testing (Test API Key)",
+      "description": "Use your test API key (`htpbe_test_...`) with these predefined mock URLs. No real PDF is downloaded, no quota is consumed, responses are deterministic. IDs are fixed UUID v4 values — you can hardcode them in automated tests.",
+      "item": [
+        {
+          "name": "POST Analyze — clean.pdf (intact)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('ID matches expected synthetic value', () => {",
+                  "        pm.expect(json.id).to.equal('00000000-0000-4000-8000-000000000001');",
+                  "    });",
+                  "    pm.collectionVariables.set('check_id', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://api.htpbe.tech/v1/test/clean.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Returns `id: 00000000-0000-4000-8000-000000000001`. Call GET /result with this ID to get the full intact response."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"00000000-0000-4000-8000-000000000001\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "POST Analyze — modified-high.pdf (modified, high confidence)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('ID matches expected synthetic value', () => {",
+                  "        pm.expect(json.id).to.equal('00000000-0000-4000-8000-000000000005');",
+                  "    });",
+                  "    pm.collectionVariables.set('check_id', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://api.htpbe.tech/v1/test/modified-high.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Returns `id: 00000000-0000-4000-8000-000000000005`. Result: `status: modified`, `modification_confidence: high`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Analyze — signature-removed.pdf (modified, certain)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', () => pm.response.to.have.status(201));",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('ID matches expected synthetic value', () => {",
+                  "        pm.expect(json.id).to.equal('00000000-0000-4000-8000-00000000000c');",
+                  "    });",
+                  "    pm.collectionVariables.set('check_id', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://api.htpbe.tech/v1/test/signature-removed.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Returns `id: 00000000-0000-4000-8000-00000000000c`. Result: `status: modified`, `modification_confidence: certain`, `signature_removed: true`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Analyze — inconclusive.pdf (consumer software)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://api.htpbe.tech/v1/test/inconclusive.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Returns `id: 00000000-0000-4000-8000-000000000011`. Result: `status: inconclusive`, `status_reason: consumer_software_origin`."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Analyze — scanned-document.pdf",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://api.htpbe.tech/v1/test/scanned-document.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Returns `id: 00000000-0000-4000-8000-000000000015`. Result: `status: inconclusive`, `status_reason: scanned_document`."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Result — synthetic ID (test key)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', () => pm.response.to.have.status(200));",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Has status field', () => pm.expect(['intact', 'modified', 'inconclusive']).to.include(json.status));",
+                  "    pm.test('check_date is null for synthetic results', () => pm.expect(json.check_date).to.be.null);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/result/{{check_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["result", "{{check_id}}"]
+            },
+            "description": "Retrieve a synthetic result using the test API key. Requires `check_id` to be a synthetic UUID (set by one of the test POST requests above).\n\n**Important:** Synthetic IDs only work with a test key — passing them to a live key returns 404."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Examples",
+      "description": "Sample requests that trigger specific error responses. Useful for testing error handling in your integration.",
+      "item": [
+        {
+          "name": "401 — Missing API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 401', () => pm.response.to.have.status(401));",
+                  "",
+                  "if (pm.response.code === 401) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Error code is missing_api_key', () => pm.expect(json.code).to.equal('missing_api_key'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/file.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "No Authorization header — triggers 401 with `code: missing_api_key`."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Missing API key. Please provide an API key in the Authorization header.\",\n  \"code\": \"missing_api_key\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "400 — Invalid URL format",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 400', () => pm.response.to.have.status(400));",
+                  "",
+                  "if (pm.response.code === 400) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Error code is invalid_url_format', () => pm.expect(json.code).to.equal('invalid_url_format'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"not-a-valid-url\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Triggers 400 with `code: invalid_url_format`."
+          },
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Invalid url format\",\n  \"code\": \"invalid_url_format\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "403 — Test URL required (test key with real URL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 403', () => pm.response.to.have.status(403));",
+                  "",
+                  "if (pm.response.code === 403) {",
+                  "    const json = pm.response.json();",
+                  "    pm.test('Error code is test_url_required', () => pm.expect(json.code).to.equal('test_url_required'));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{test_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com/real-document.pdf\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["analyze"]
+            },
+            "description": "Test keys can only be used with `https://api.htpbe.tech/v1/test/` mock URLs. Any other URL triggers 403."
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Test API keys can only be used with test URLs. See documentation for available test URLs.\",\n  \"code\": \"test_url_required\",\n  \"details\": \"Use URLs like: https://api.htpbe.tech/v1/test/clean.pdf, https://api.htpbe.tech/v1/test/modified-high.pdf, etc.\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "400 — Invalid checks limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test('Status code is 400', () => pm.response.to.have.status(400));"],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/checks?limit=1000",
+              "host": ["{{base_url}}"],
+              "path": ["checks"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1000",
+                  "description": "Exceeds max of 500"
+                }
+              ]
+            },
+            "description": "Triggers 400 — `limit` must be between 1 and 500."
+          },
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"Invalid query parameters\",\n  \"code\": \"invalid_request\",\n  \"details\": \"limit must be between 1 and 500\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

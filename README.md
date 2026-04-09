@@ -9,6 +9,8 @@ Submit a PDF URL → get a verdict: **`intact`**, **`modified`**, or **`inconclu
 Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
 
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/51864889-5ad8d5bd-e6c2-46d9-8efe-f015b066b0d9)
+
 ---
 
 ## What It Does
