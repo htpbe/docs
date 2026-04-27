@@ -1,6 +1,6 @@
-# HTPBE Enterprise: On-Premise Deployment
+# htpbe? Enterprise: On-Premise Deployment
 
-**HTPBE is available for on-premise deployment** — run the PDF analysis engine entirely within your own infrastructure. Documents never leave your network.
+**htpbe? is available for on-premise deployment** — run the PDF analysis engine entirely within your own infrastructure. Documents never leave your network.
 
 → **Contact:** mail@htpbe.tech to discuss requirements and pricing.
 
@@ -24,7 +24,7 @@ The on-premise version is the same analysis engine that powers htpbe.tech — id
 
 **What's included:**
 
-- Docker image of the HTPBE analysis engine
+- Docker image of the htpbe? analysis engine
 - Identical REST API (`POST /analyze`, `GET /result/{id}`, `GET /checks`)
 - No file size limits — configure based on your server capacity
 - No request quotas — your infrastructure, your rules
@@ -45,7 +45,7 @@ Your application
        │  HTTP POST /analyze  { url: "..." }
        ▼
 ┌─────────────────────────────────┐
-│   HTPBE Analysis Engine         │
+│   htpbe? Analysis Engine         │
 │   (Docker container)            │
 │                                 │
 │  ┌──────────────────────────┐   │
