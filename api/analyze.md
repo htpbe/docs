@@ -487,6 +487,32 @@ Request is valid but the content cannot be processed.
 
 ---
 
+#### Analysis Interrupted
+
+```json
+{
+  "error": "PDF could not be analyzed",
+  "code": "invalid_pdf",
+  "details": "Analysis was interrupted. The file may be malformed or too complex."
+}
+```
+
+Returned when the analysis worker is killed by the runtime — typically because the PDF is structurally pathological (e.g. enormous object graph) and would otherwise exhaust memory. The error code is the same as for malformed PDFs (`invalid_pdf`), so you do not need to handle it separately.
+
+A second variant signals the analysis time limit:
+
+```json
+{
+  "error": "PDF could not be analyzed",
+  "code": "invalid_pdf",
+  "details": "Analysis exceeded the time limit. The file may be too complex."
+}
+```
+
+**Solution:** Retrying the same file is not expected to help. If you believe the file is valid, contact support with the URL.
+
+---
+
 ### 500 Internal Server Error
 
 Server-side error during processing.
@@ -522,7 +548,8 @@ See [Testing with Test API Keys](../testing.md) for the complete test URL list, 
 
 - **Typical:** 2-5 seconds for average PDFs (1-20 pages)
 - **Larger files:** 5-15 seconds for complex PDFs (50-100 pages)
-- **Timeout:** 30 seconds maximum. Requests exceeding this will fail with a download error.
+- **Download timeout:** 30 seconds. Requests where downloading the source URL exceeds this fail with `download_failed` (400).
+- **Analysis timeout:** 20 seconds. Files whose structure takes longer to parse fail with `invalid_pdf` (422). This is independent of the download timeout.
 
 ### Supported PDF Features
 
