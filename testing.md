@@ -595,7 +595,7 @@ assert result["origin"]["software"] is None
 }
 ```
 
-**Fix:** Use one of the 21 URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
+**Fix:** Use one of the URLs listed in the [Available Test URLs](#available-test-urls) table, or switch to your live key.
 
 ---
 

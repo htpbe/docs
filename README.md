@@ -23,13 +23,7 @@ HTPBE? analyzes a PDF file and returns one of three verdicts:
 
 **What "No Traces Found" actually means:** The algorithm found no forensic evidence of modification — no structural artifacts, no metadata inconsistencies, no editing tool signatures. This is a statement about what was detected, not a guarantee of authenticity. A document fabricated from scratch and exported cleanly may also show no traces, because it was never modified after creation — only created with false content. Absence of evidence is not evidence of absence.
 
-The analysis examines 5 layers:
-
-1. **Metadata** — creation date, modification date, creator app, producer app
-2. **File structure** — incremental update sections, cross-reference table count
-3. **Digital signatures** — presence, integrity, post-signing modifications
-4. **Content** — embedded JavaScript, attachments, page count anomalies
-5. **Threat Assessment** — risk scoring, detection method enumeration, specific findings
+The analysis runs multiple forensic checks across metadata, file structure, digital signatures, content integrity, and threat scoring. See the full list at [htpbe.tech/how](https://htpbe.tech/how).
 
 ---
 
@@ -158,31 +152,7 @@ OpenAPI specification: [htpbe.tech/openapi.yaml](https://htpbe.tech/openapi.yaml
 
 ## Changelog
 
-### v3.1.0 — April 2026
-
-- **New:** API is now available at the dedicated subdomain `https://api.htpbe.tech/v1`
-- The previous base URL (`https://htpbe.tech/api/v1`) continues to work — no migration required
-
-### v3.0.0 — March 2026
-
-- **New:** `status` primary verdict field — `"intact"` | `"modified"` | `"inconclusive"`
-- **New:** `status_reason` — machine-readable reason code for inconclusive results
-- **New:** `origin` object — detects consumer software (Microsoft Office, LibreOffice, Apple Pages, etc.) and online editing services (iLovePDF, Smallpdf, PDF24, etc.), and explains why the check may not be applicable
-- **Removed:** `been_changed` field — use `status` instead
-- **New test URLs:** `inconclusive.pdf` (consumer software origin), `inconclusive-online-editor.pdf` (online editor origin), and `scanned-document.pdf` (scanned document) for testing all three `status_reason` values
-
-### v2.0.0 — February 2026
-
-- Improved detection accuracy for PDFs processed by online editors
-- Added producer/creator mismatch fingerprinting for 50+ known tools
-- Improved modification confidence detection with critical marker system
-- API v2 with expanded response schema (30+ fields)
-
-### v1.0.0 — 2024
-
-- Initial release
-- 5-layer PDF analysis
-- Web interface + REST API
+Full version history and release notes: [htpbe.tech/changelog](https://htpbe.tech/changelog).
 
 ---
 

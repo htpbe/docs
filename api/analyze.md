@@ -430,7 +430,7 @@ Access forbidden due to account status.
 
 **Cause:** A test API key (`htpbe_test_...`) was used with a real URL. Test keys are restricted to the predefined test URLs — they cannot download or analyze real PDFs.
 
-**Solution:** Use one of the 21 mock test URLs listed in [Testing with Test API Keys](../testing.md), or switch to a live API key (`htpbe_live_...`) to analyze real files.
+**Solution:** Use one of the mock test URLs — see [testing.md](../testing.md) for the full list — or switch to a live API key (`htpbe_live_...`) to analyze real files.
 
 ---
 
@@ -536,9 +536,9 @@ Server-side error during processing.
 
 ## Testing
 
-Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic UUID v4 check IDs (e.g., `00000000-0000-4000-8000-000000000001` for `clean.pdf`, `00000000-0000-4000-8000-000000000005` for `modified-high.pdf`) for the 21 predefined mock URLs + 1 error trigger URL — no real file is downloaded and no quota is consumed.
+Use test API keys (`htpbe_test_...`) to integrate without consuming quota or analyzing real PDFs. Test keys return deterministic UUID v4 check IDs (e.g., `00000000-0000-4000-8000-000000000001` for `clean.pdf`, `00000000-0000-4000-8000-000000000005` for `modified-high.pdf`) for the predefined mock URLs plus an error-trigger URL — no real file is downloaded and no quota is consumed.
 
-See [Testing with Test API Keys](../testing.md) for the complete test URL list, synthetic ID table, code examples, and checklist.
+See [testing.md](../testing.md) for the full list of test URLs, synthetic ID table, code examples, and checklist.
 
 ---
 
