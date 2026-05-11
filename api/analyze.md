@@ -190,12 +190,7 @@ The verdict fields (`status`, `modification_confidence`, `modification_markers`)
 
 **How `status: "modified"` is determined:**
 
-The verdict is set to `"modified"` when any of the following critical markers are found:
-
-1. Incremental update sections detected in PDF structure
-2. Modifications found after digital signature was applied
-3. Digital signature was removed
-4. Both creation and modification dates are present and differ
+The verdict is set to `"modified"` when one or more forensic markers fire. Markers are returned in `modification_markers[]` as stable machine-readable ids (e.g. `HTPBE_SIGNATURE_REMOVED`, `HTPBE_DATES_DISAGREE`, `HTPBE_MULTIPLE_REVISION_LAYERS`, `HTPBE_POST_SIGNATURE_EDIT`). The full id → outcome-label dictionary is published on [htpbe.tech/how](https://htpbe.tech/how) — branch your integration logic on the id, render the user-facing label from the dictionary.
 
 **What we detect:**
 

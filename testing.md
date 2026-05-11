@@ -160,7 +160,7 @@ Response:
   "object_count": 480,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": ["Known PDF editing tool detected"]
+  "modification_markers": ["HTPBE_EDITING_TOOL_FINGERPRINT"]
 }
 ```
 
@@ -385,7 +385,7 @@ Expected:
 {
   "has_javascript": true,
   "has_embedded_files": true,
-  "modification_markers": ["Digital signature was removed"]
+  "modification_markers": ["HTPBE_SIGNATURE_REMOVED"]
 }
 ```
 
@@ -971,7 +971,7 @@ Modification date 14 days after creation date.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Different creation and modification dates"]
+  "modification_markers": ["HTPBE_DATES_DISAGREE"]
 }
 ```
 
@@ -1009,7 +1009,7 @@ Minor modification — one incremental update.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
+  "modification_markers": ["HTPBE_MULTIPLE_REVISION_LAYERS"]
 }
 ```
 
@@ -1047,7 +1047,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
+  "modification_markers": ["HTPBE_MULTIPLE_REVISION_LAYERS"]
 }
 ```
 
@@ -1085,7 +1085,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
+  "modification_markers": ["HTPBE_MULTIPLE_REVISION_LAYERS"]
 }
 ```
 
@@ -1123,7 +1123,7 @@ Moderate modification — creator/producer mismatch.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
+  "modification_markers": ["HTPBE_MULTIPLE_REVISION_LAYERS"]
 }
 ```
 
@@ -1161,7 +1161,7 @@ Embedded file attachments added after creation.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": true },
-  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
+  "modification_markers": ["HTPBE_MULTIPLE_REVISION_LAYERS"]
 }
 ```
 
@@ -1199,7 +1199,7 @@ JavaScript code embedded in the PDF.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "modification_markers": ["Multiple cross-reference tables (incremental updates)"]
+  "modification_markers": ["HTPBE_MULTIPLE_REVISION_LAYERS"]
 }
 ```
 
@@ -1237,7 +1237,7 @@ Significant modification — multiple saves, tool changed to PDFtk.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Known PDF editing tool detected"]
+  "modification_markers": ["HTPBE_EDITING_TOOL_FINGERPRINT"]
 }
 ```
 
@@ -1275,7 +1275,7 @@ Modified after digital signing — signature is now invalidated.
     "modifications_after_signature": true
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Modifications detected after digital signature"]
+  "modification_markers": ["HTPBE_POST_SIGNATURE_EDIT"]
 }
 ```
 
@@ -1313,7 +1313,7 @@ Digital signature was removed from the document.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Digital signature was removed"]
+  "modification_markers": ["HTPBE_SIGNATURE_REMOVED"]
 }
 ```
 
@@ -1351,7 +1351,7 @@ Signature removed + JavaScript detected + 8-step modification chain.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": false },
-  "modification_markers": ["Digital signature was removed"]
+  "modification_markers": ["HTPBE_SIGNATURE_REMOVED"]
 }
 ```
 
@@ -1389,7 +1389,7 @@ JavaScript + embedded files + signature removed. Maximum severity.
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": true, "has_embedded_files": true },
-  "modification_markers": ["Digital signature was removed"]
+  "modification_markers": ["HTPBE_SIGNATURE_REMOVED"]
 }
 ```
 
@@ -1427,7 +1427,7 @@ Modification date is before creation date — impossible in a normal workflow, i
     "modifications_after_signature": false
   },
   "threats": { "has_javascript": false, "has_embedded_files": false },
-  "modification_markers": ["Different creation and modification dates"]
+  "modification_markers": ["HTPBE_DATES_DISAGREE"]
 }
 ```
 

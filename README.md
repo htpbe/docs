@@ -57,6 +57,12 @@ Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All plans include 
 | `GET`  | `/result/{id}` | Retrieve a past result by ID  |
 | `GET`  | `/checks`      | Paginated list of all checks  |
 
+### Modification markers
+
+The `modification_markers[]` field in `/result/{id}` returns an array of stable machine-readable ids (e.g. `HTPBE_SIGNATURE_REMOVED`, `HTPBE_DATES_DISAGREE`, `HTPBE_MULTIPLE_REVISION_LAYERS`). Branch your integration logic on the id, not on the localized label.
+
+The full id → outcome-label dictionary is published at **[htpbe.tech/how](https://htpbe.tech/how)** — searchable, versioned, and the only place where id descriptions are defined. Once a marker id ships it never changes, so it is safe to hard-code as part of your fraud-handling rules.
+
 ---
 
 ## Usage Examples

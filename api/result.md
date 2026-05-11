@@ -488,21 +488,20 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 - **Type:** `string[]` (array of strings)
 - **Always Present:** Yes
-- **Description:** All modification signals detected, ordered strongest-first. The first element (`modification_markers[0]`) is the strongest marker — the single most important forensic indicator that drove the verdict. Usually contains one entry; may have two or three when multiple independent signals fired simultaneously (e.g. different dates AND an editing tool detected). Empty when `status` is `"intact"` or `"inconclusive"`.
+- **Description:** All modification signals detected, ordered strongest-first. The first element (`modification_markers[0]`) is the strongest marker — the single most important forensic indicator that drove the verdict. Usually contains one entry; may have two or three when multiple independent signals fired simultaneously (e.g. dates disagree AND an editing tool detected). Empty when `status` is `"intact"` or `"inconclusive"`.
+- **Format:** Each entry is a stable machine-readable id (e.g. `HTPBE_SIGNATURE_REMOVED`, `HTPBE_DATES_DISAGREE`). The full id → outcome-label dictionary is published on [htpbe.tech/how](https://htpbe.tech/how) — branch on the id in your integration, render the user-facing label from the dictionary.
 - **Empty When:** No modification detected (`status: "intact"` or `status: "inconclusive"`)
 - **Example Values:**
-  - `"Different creation and modification dates"`
-  - `"Multiple cross-reference tables (incremental updates)"`
-  - `"Digital signature was removed"`
-  - `"Modifications detected after digital signature"`
-  - `"Known PDF editing tool detected"`
-  - `"Mandatory metadata fields removed"`
-  - `"Font structure inconsistent with claimed PDF generator"`
-  - `"Document structure indicates design-tool template assembly"`
-  - `"Creator or producer present but creation date removed"`
-  - `"Soft-mask (alpha channel) detected on page images"`
-  - `"Embedded font with isolated text over image-heavy page"`
-  - `"Text rendered as vector outlines — fonts absent in non-scan document"`
+  - `"HTPBE_DATES_DISAGREE"`
+  - `"HTPBE_MULTIPLE_REVISION_LAYERS"`
+  - `"HTPBE_SIGNATURE_REMOVED"`
+  - `"HTPBE_POST_SIGNATURE_EDIT"`
+  - `"HTPBE_EDITING_TOOL_FINGERPRINT"`
+  - `"HTPBE_IDENTITY_BLANKED"`
+  - `"HTPBE_FONT_VS_TOOL_MISMATCH"`
+  - `"HTPBE_DESIGN_TEMPLATE_ASSEMBLY"`
+  - `"HTPBE_TEXT_OVERLAY_ON_SCAN"`
+  - `"HTPBE_TEXT_AS_VECTOR_OUTLINES"`
 
 ---
 
@@ -540,10 +539,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 487,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": [
-    "Digital signature was removed",
-    "Different creation and modification dates"
-  ]
+  "modification_markers": ["HTPBE_SIGNATURE_REMOVED", "HTPBE_DATES_DISAGREE"]
 }
 ```
 
