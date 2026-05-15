@@ -508,6 +508,37 @@ A second variant signals the analysis time limit:
 
 ---
 
+### 429 Too Many Requests
+
+The server is processing the maximum number of concurrent PDF analyses and cannot accept another one right now.
+
+#### Server At Capacity
+
+```json
+{
+  "error": "Server is at analysis capacity, retry shortly",
+  "code": "server_at_capacity",
+  "details": "Concurrent analyses in flight: 2 of 2."
+}
+```
+
+The response includes a `Retry-After` header (in seconds) indicating how long to wait before retrying.
+
+**Common Causes:**
+
+- A burst of parallel requests against the same API instance
+- A long-running analysis on a particularly complex PDF holding a slot
+
+**Solution:**
+
+- Respect the `Retry-After` header — wait the indicated number of seconds, then retry the same request
+- Use exponential backoff if you receive multiple 429s in a row
+- If you need higher sustained throughput, contact support — Enterprise plans can be deployed with elevated concurrency limits
+
+**Note:** This is server-wide capacity, not per-API-key rate limiting. The same retry strategy applies for both live and test keys.
+
+---
+
 ### 500 Internal Server Error
 
 Server-side error during processing.
