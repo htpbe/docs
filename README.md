@@ -6,7 +6,7 @@ HTPBE? scans a PDF for forensic evidence of post-creation modification.
 
 Submit a PDF URL → get a verdict: **`intact`**, **`modified`**, or **`inconclusive`**.
 
-Web tool (free, no login): **[htpbe.tech](https://htpbe.tech)**
+Web tool (5 free checks on signup): **[htpbe.tech](https://htpbe.tech)**
 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/51864889-5ad8d5bd-e6c2-46d9-8efe-f015b066b0d9)
@@ -29,11 +29,11 @@ The analysis runs multiple forensic checks across metadata, file structure, digi
 
 ## Web Interface
 
-Free, no registration required.
+New accounts get **5 free checks** on signup. After that, top up with one-time credit packs (from $5) or a subscription (from $15/mo). Credits are shared across the web tool and the API.
 
 1. Go to [htpbe.tech](https://htpbe.tech)
 2. Upload a PDF (drag & drop or click) — up to 10 MB
-3. Get results in seconds
+3. Sign in to view the verdict (new accounts get 5 free checks)
 4. Every result has a unique shareable URL
 
 ---
@@ -45,7 +45,7 @@ REST API for automated document verification workflows.
 **Base URL:** `https://api.htpbe.tech/v1`
 **Auth:** `Authorization: Bearer YOUR_API_KEY`
 
-Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All plans include test API keys for development. The web interface is free and unlimited for evaluating quality.
+Get your API key at [htpbe.tech/api](https://htpbe.tech/api). All plans include test API keys for development (test keys are free and unlimited — they return deterministic synthetic results). New accounts also get 5 free web checks to evaluate quality before integrating.
 
 **Two-step flow:** `POST /analyze` triggers analysis synchronously and returns only `{ "id": "..." }`. Call `GET /result/{id}` immediately after to retrieve the full verdict and metadata. The same `id` is also returned in the `GET /checks` list, so you can pass any check's `id` directly to `GET /result/{id}`.
 
