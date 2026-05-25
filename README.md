@@ -136,6 +136,8 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 
 All plans include test API keys. Monthly billing only. Requests beyond the monthly quota are charged at the overage rate and billed automatically at the end of the billing cycle — no hard cutoff.
 
+Prices are shown in USD. Customers in the UK are billed the same figures in GBP, and customers in the EU/EEA in EUR (e.g. £15 / €15 / $15) — the number is identical across currencies. All prices exclude VAT, which Stripe Tax adds at checkout where applicable.
+
 ---
 
 ## Limitations
