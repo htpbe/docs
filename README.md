@@ -127,14 +127,14 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 
 ## Pricing
 
-| Plan           | Price   | Requests/month | Per request | Overage rate |
-| -------------- | ------- | -------------- | ----------- | ------------ |
-| **Starter**    | $15/mo  | 30             | $0.50       | $0.60/req    |
-| **Growth**     | $149/mo | 350            | $0.43       | $0.50/req    |
-| **Pro**        | $499/mo | 1,500          | $0.33       | $0.40/req    |
-| **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 | Included     |
+| Plan           | Price   | Requests/month | Per request |
+| -------------- | ------- | -------------- | ----------- |
+| **Starter**    | $15/mo  | 30             | $0.50       |
+| **Growth**     | $149/mo | 350            | $0.43       |
+| **Pro**        | $499/mo | 1,500          | $0.33       |
+| **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 |
 
-All plans include test API keys. Monthly billing only. Requests beyond the monthly quota are charged at the overage rate and billed automatically at the end of the billing cycle — no hard cutoff.
+All plans include test API keys. Monthly billing only. The monthly quota covers both API calls and web uploads from a single pool. When a subscriber reaches their quota, further requests return `402 PAYMENT_REQUIRED` until the quota resets — add a one-time credit pack or upgrade to keep going. (Continued checking past the quota is available only by individual agreement.)
 
 Prices are shown in USD. Customers in the UK are billed the same figures in GBP, and customers in the EU/EEA in EUR (e.g. £15 / €15 / $15) — the number is identical across currencies. All prices exclude VAT, which Stripe Tax adds at checkout where applicable.
 

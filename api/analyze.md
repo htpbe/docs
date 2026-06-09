@@ -18,16 +18,11 @@ Authorization: Bearer YOUR_API_KEY
 
 ---
 
-## Overage Billing
+## Quota & Credits
 
-Requests beyond your monthly quota are charged at your plan's overage rate and billed automatically at the end of your billing cycle. There is no hard block when your quota is reached — requests continue to succeed and overage charges appear on your next invoice.
+Each call draws from a single pool shared by API calls and web uploads. A subscriber's monthly quota is spent first; once it is used up, calls draw from any one-time credit packs on the account.
 
-| Plan       | Overage rate |
-| ---------- | ------------ |
-| Starter    | $0.60/req    |
-| Growth     | $0.50/req    |
-| Pro        | $0.40/req    |
-| Enterprise | Included     |
+When a subscriber reaches their quota with no credit pack left — or a key has no credits and no active subscription — the call returns `402 PAYMENT_REQUIRED`. Add a one-time credit pack or upgrade your plan to continue. Continued checking past the monthly quota ("overage") is not enabled by default; it is available only by individual agreement.
 
 ---
 
@@ -377,21 +372,21 @@ Authentication failed.
 
 ### 402 Payment Required
 
-No active subscription found for this API key.
+No credits remaining to run this check.
 
 ```json
 {
-  "error": "No active subscription. Please subscribe to a plan to use the API.",
+  "error": "No credits remaining. Buy a credit pack or start a subscription to continue.",
   "code": "payment_required"
 }
 ```
 
-**Cause:** Your account does not have an active paid plan.
+**Cause:** Your account has no credit source for this request — either a subscriber who has used the monthly quota and has no credit pack left, or a key with no credits and no active subscription. (Continued checking past the monthly quota is available only by individual agreement.)
 
 **Solution:**
 
 1. Log in to your dashboard at https://htpbe.tech/dashboard
-2. Subscribe to a plan (Starter, Growth, or Pro)
+2. Add a one-time credit pack, or subscribe to / upgrade a plan (Starter, Growth, or Pro)
 3. Your API access will resume immediately
 
 ---
