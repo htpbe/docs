@@ -501,7 +501,7 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   - `"HTPBE_FONT_VS_TOOL_MISMATCH"`
   - `"HTPBE_DESIGN_TEMPLATE_ASSEMBLY"`
   - `"HTPBE_TEXT_OVERLAY_ON_SCAN"`
-  - `"HTPBE_TEXT_AS_VECTOR_OUTLINES"`
+  - `"HTPBE_PAGES_FROM_MULTIPLE_SOURCES"`
 
 ---
 
