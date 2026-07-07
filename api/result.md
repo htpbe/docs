@@ -118,9 +118,9 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
   // Primary Verdict
   status: "intact" | "modified" | "inconclusive";
-  status_reason?: "html_renderer_origin" | "consumer_software_origin" | "online_editor_origin" | "scanned_document";
+  status_reason?: "html_renderer_origin" | "consumer_software_origin" | "online_editor_origin" | "scanned_document" | "unverifiable_metadata" | "filled_form_origin" | "fill_sign_origin";
   origin: {
-    type: "consumer_software" | "institutional" | "unknown" | "online_editor" | "scanned";
+    type: "consumer_software" | "institutional" | "unknown" | "online_editor" | "scanned" | "unverifiable" | "filled_form" | "fill_sign";
     software: string | null;
   };
 
@@ -251,7 +251,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
 ##### `status_reason`
 
-- **Type:** `"consumer_software_origin" | "online_editor_origin" | "scanned_document" | "html_renderer_origin"` | absent
+- **Type:** `"consumer_software_origin" | "online_editor_origin" | "scanned_document" | "html_renderer_origin" | "unverifiable_metadata" | "filled_form_origin" | "fill_sign_origin"` | absent
 - **Always Present:** No — only present when `status === "inconclusive"`
 - **Description:** Explains why the result is inconclusive.
 - **Values:**
@@ -259,6 +259,9 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   - `"consumer_software_origin"` — the PDF was created by consumer software (Microsoft Word, LibreOffice, Google Docs, etc.). These tools allow anyone to create a document from scratch, so there is no meaningful "original" to compare against.
   - `"online_editor_origin"` — the PDF was processed through an online editing service (iLovePDF, Smallpdf, PDF24, etc.). These services strip original metadata, making provenance verification impossible.
   - `"scanned_document"` — the PDF is a pure raster scan (no fonts, no text layer, at least one image per page). Anyone can print and scan a document, so its content cannot be verified through metadata analysis.
+  - `"unverifiable_metadata"` — the PDF was rebuilt by a render engine (e.g. a browser print backend) that flattens away the structural history an integrity check depends on. The original provenance can no longer be established.
+  - `"filled_form_origin"` — the PDF is an interactive form (AcroForm) with at least one filled field. A form can be filled or re-filled any number of times, so a structural check cannot certify what it currently shows.
+  - `"fill_sign_origin"` — the PDF carries an Adobe Fill & Sign overlay, which lets anyone add text and marks over a page. A structural check cannot separate an original fill from a later edit.
 - **Usage:** Always check `status_reason` when `status === "inconclusive"` — it tells you _why_ the result is inconclusive, not just that it is.
 
 ```typescript
