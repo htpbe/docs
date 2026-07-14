@@ -323,6 +323,13 @@ Each item in the `data` array has the following structure:
   // Structure
   update_chain_length: number;
   object_count: number;
+
+  // Responsible-use guardrail (always present)
+  usage_caution: {
+    safe_for_automated_adverse_decision: false;
+    recommended_action: 'route_to_human_review' | 'request_from_issuer' | 'no_action';
+    message: string;
+  }
 }
 ```
 
@@ -546,6 +553,14 @@ Each item in the `data` array has the following structure:
 
 ---
 
+##### `usage_caution`
+
+- **Type:** `object`
+- **Always Present:** Yes
+- **Description:** In-contract responsible-use guardrail (same shape as on `GET /result/{id}`). A structural verdict must never be the sole basis for an automatic adverse decision against a person. `safe_for_automated_adverse_decision` is always `false`; `recommended_action` is `"route_to_human_review"` for `modified`, `"request_from_issuer"` for `inconclusive` (the check could not confirm integrity — not proof of fraud), or `"no_action"` for `intact`.
+
+---
+
 ### Example Response
 
 ```json
@@ -569,7 +584,12 @@ Each item in the `data` array has the following structure:
       "has_embedded_files": false,
       "has_incremental_updates": true,
       "update_chain_length": 3,
-      "object_count": 234
+      "object_count": 234,
+      "usage_caution": {
+        "safe_for_automated_adverse_decision": false,
+        "recommended_action": "route_to_human_review",
+        "message": "Structural evidence of post-creation modification was found. Route this document to a human reviewer before any decision — do not use this verdict as the sole basis for an automatic adverse decision against a person."
+      }
     },
     {
       "id": "b7e2d8f1-2e1d-4c5f-9b8e-7a6d5c4b3a21",
@@ -589,7 +609,12 @@ Each item in the `data` array has the following structure:
       "has_embedded_files": false,
       "has_incremental_updates": false,
       "update_chain_length": 1,
-      "object_count": 567
+      "object_count": 567,
+      "usage_caution": {
+        "safe_for_automated_adverse_decision": false,
+        "recommended_action": "no_action",
+        "message": "No modification was detected. This is not a guarantee of authenticity — do not use this verdict as the sole basis for a consequential decision."
+      }
     }
   ],
   "total": 1250,

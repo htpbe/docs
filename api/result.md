@@ -157,6 +157,13 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 
   // Modification Evidence
   modification_markers: string[];
+
+  // Responsible-use guardrail (always present)
+  usage_caution: {
+    safe_for_automated_adverse_decision: false;
+    recommended_action: "route_to_human_review" | "request_from_issuer" | "no_action";
+    message: string;
+  };
 }
 ```
 
@@ -325,11 +332,11 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 - **Type:** `string | null` (enum)
 - **Can Be Null:** Yes
-- **Description:** How certain the algorithm is about the modification verdict. Use this to decide what action to take.
+- **Description:** How certain the algorithm is about the modification verdict. Use it to decide _how_ to route the case for review — never as a trigger for an automatic adverse decision against a person (see [`usage_caution`](#usage_caution)).
 - **Possible Values:**
-  - `"certain"` — conclusive structural or cryptographic evidence; **reject the document** — the finding cannot be a false positive (date mismatch, post-signature modification, signature removal)
+  - `"certain"` — conclusive structural or cryptographic evidence; the finding cannot be a false positive (date mismatch, post-signature modification, signature removal). **Treat the document as modified and route it to human review or request a fresh copy directly from the issuer** — do not auto-reject the person on this alone.
   - `"high"` — strong forensic evidence; **flag for manual review** — highly reliable but rare false positives are possible in unusual legitimate workflows (e.g. linearization, batch processing pipelines)
-  - `"none"` — no modification detected; document can be accepted as-is
+  - `"none"` — no modification detected; the document can proceed, subject to your own downstream checks
 - **Relationship to `status`:** `certain` and `high` always correspond to `status: "modified"`. `none` corresponds to `status: "intact"` or `"inconclusive"` depending on origin.
 - **Null When:** Legacy records before this field was added
 
@@ -504,6 +511,29 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
 
 ---
 
+#### Responsible-Use Field
+
+##### `usage_caution`
+
+- **Type:** `object`
+- **Always Present:** Yes
+- **Description:** In-contract responsible-use guardrail. A structural verdict describes the **file**, not the person who sent it, so it must never be the sole basis for an automatic adverse decision (rejecting or denying an applicant, claimant, or customer). This field ships the guardrail in the payload itself, not only in the docs — branch on `recommended_action` to route the case instead of auto-rejecting.
+- **Fields:**
+  - `safe_for_automated_adverse_decision` — `boolean`, always `false`. A machine-checkable assertion that this verdict alone must not drive an automatic adverse decision against a person.
+  - `recommended_action` — `"route_to_human_review"` (for `status: "modified"`), `"request_from_issuer"` (for `status: "inconclusive"` — the check could not confirm integrity, which is **not** proof of fraud), or `"no_action"` (for `status: "intact"`).
+  - `message` — human-readable guidance matching `recommended_action`.
+- **Example:**
+
+```json
+{
+  "safe_for_automated_adverse_decision": false,
+  "recommended_action": "route_to_human_review",
+  "message": "Structural evidence of post-creation modification was found. Route this document to a human reviewer before any decision — do not use this verdict as the sole basis for an automatic adverse decision against a person."
+}
+```
+
+---
+
 ### Example Response
 
 ```json
@@ -538,7 +568,12 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 487,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": ["HTPBE_SIGNATURE_REMOVED", "HTPBE_DATES_DISAGREE"]
+  "modification_markers": ["HTPBE_SIGNATURE_REMOVED", "HTPBE_DATES_DISAGREE"],
+  "usage_caution": {
+    "safe_for_automated_adverse_decision": false,
+    "recommended_action": "route_to_human_review",
+    "message": "Structural evidence of post-creation modification was found. Route this document to a human reviewer before any decision — do not use this verdict as the sole basis for an automatic adverse decision against a person."
+  }
 }
 ```
 
@@ -577,7 +612,12 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 82,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": []
+  "modification_markers": [],
+  "usage_caution": {
+    "safe_for_automated_adverse_decision": false,
+    "recommended_action": "request_from_issuer",
+    "message": "The check could not confirm this document’s integrity, which is not proof of fraud. Confirm the content directly with the issuing organisation or route it to human review — do not treat inconclusive as an automatic rejection."
+  }
 }
 ```
 
@@ -616,7 +656,12 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 110,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": []
+  "modification_markers": [],
+  "usage_caution": {
+    "safe_for_automated_adverse_decision": false,
+    "recommended_action": "request_from_issuer",
+    "message": "The check could not confirm this document’s integrity, which is not proof of fraud. Confirm the content directly with the issuing organisation or route it to human review — do not treat inconclusive as an automatic rejection."
+  }
 }
 ```
 
@@ -655,7 +700,12 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "object_count": 45,
   "has_javascript": false,
   "has_embedded_files": false,
-  "modification_markers": []
+  "modification_markers": [],
+  "usage_caution": {
+    "safe_for_automated_adverse_decision": false,
+    "recommended_action": "request_from_issuer",
+    "message": "The check could not confirm this document’s integrity, which is not proof of fraud. Confirm the content directly with the issuing organisation or route it to human review — do not treat inconclusive as an automatic rejection."
+  }
 }
 ```
 

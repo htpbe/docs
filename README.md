@@ -63,6 +63,16 @@ The `modification_markers[]` field in `/result/{id}` returns an array of stable 
 
 The full id → outcome-label dictionary is published at **[htpbe.tech/how](https://htpbe.tech/how)** — searchable, versioned, and the only place where id descriptions are defined. Once a marker id ships it never changes, so it is safe to hard-code as part of your fraud-handling rules.
 
+### Responsible use
+
+Every result carries a `usage_caution` object. A structural verdict describes the **file**, not the person who sent it, so it must never be the sole basis for an automatic adverse decision (rejecting or denying an applicant, claimant, or customer). Branch on `usage_caution.recommended_action`:
+
+- `route_to_human_review` — a `modified` verdict; send the case to a human reviewer.
+- `request_from_issuer` — an `inconclusive` verdict; the check could not confirm integrity, which is **not** proof of fraud. Confirm the content with the issuing organisation or route it to review.
+- `no_action` — an `intact` verdict; no adverse action implied (and still not a standalone guarantee of authenticity).
+
+`usage_caution.safe_for_automated_adverse_decision` is always `false` — a machine-checkable reminder to keep a human or an issuer re-request in the loop.
+
 ---
 
 ## Usage Examples
@@ -136,7 +146,7 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 
 All plans include test API keys. Monthly billing only. The monthly quota covers both API calls and web uploads from a single pool. When a subscriber reaches their quota, further requests return `402 PAYMENT_REQUIRED` until the quota resets — add a one-time credit pack or upgrade to keep going. (Continued checking past the quota is available only by individual agreement.)
 
-Prices are shown in USD. Customers in the UK are billed the same figures in GBP, and customers in the EU/EEA in EUR (e.g. £15 / €15 / $15) — the number is identical across currencies. All prices exclude VAT, which Stripe Tax adds at checkout where applicable.
+Prices are shown in USD. Customers in the UK are billed the same figures in GBP, and customers in the EU/EEA in EUR (e.g. £15 / €15 / $15) — the number is identical across currencies. All prices exclude VAT, which is added at checkout where applicable.
 
 ---
 
