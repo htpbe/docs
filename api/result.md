@@ -252,7 +252,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Always Present:** Yes
 - **Description:** **PRIMARY VERDICT.** Priority: `modified > inconclusive > intact`
   - `"modified"` — forensic evidence of post-creation modification detected; takes priority over origin type — a modified Word or Excel document is still `modified`
-  - `"inconclusive"` — consumer software, online editor, or scanned origin with no modification detected; integrity check does not apply to documents anyone can create, reprocess, or scan from scratch
+  - `"inconclusive"` — consumer software, online editor, scanned, unverifiable (re-rendered or image-only), filled-form, or Fill & Sign origin with no modification detected; integrity check does not apply to documents anyone can create, reprocess, fill in, or scan from scratch. The specific cause is in `status_reason`
   - `"intact"` — no modification detected and origin appears institutional
 - **Note:** `status_reason` only appears when `status === "inconclusive"`
 
@@ -270,16 +270,41 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   - `"fill_sign_origin"` — the PDF carries an Adobe Fill & Sign overlay, which lets anyone add text and marks over a page. A structural check cannot separate an original fill from a later edit.
 - **Usage:** Always check `status_reason` when `status === "inconclusive"` — it tells you _why_ the result is inconclusive, not just that it is.
 
+Handle every branch — an `inconclusive` verdict is not a failure and not a pass. It means the integrity check does not apply, so route the document by _why_ rather than treating it as clean:
+
 ```typescript
-if (result.status === 'inconclusive') {
-  if (result.status_reason === 'scanned_document') {
-    // Pure raster scan — no text layer, provenance unverifiable
-  } else if (result.status_reason === 'online_editor_origin') {
-    // Processed through an online editor — original metadata stripped
-  } else {
-    // result.status_reason === 'consumer_software_origin'
-    // Created in consumer software or a free HTML-to-PDF renderer — not tampered, just
-    // unverifiable. On a document that claims institutional origin, treat as route-to-human.
+function handleResult(result) {
+  switch (result.status) {
+    case 'modified':
+      // Forensic evidence of post-creation modification — route to human review.
+      return 'review';
+
+    case 'intact':
+      // No modification detected and origin appears institutional.
+      return 'accept';
+
+    case 'inconclusive':
+      // Integrity check does not apply. Branch on status_reason to decide handling.
+      switch (result.status_reason) {
+        case 'scanned_document':
+        // Pure raster scan — no text layer, provenance unverifiable.
+        case 'online_editor_origin':
+        // Processed through an online editor — original metadata stripped.
+        case 'unverifiable_metadata':
+        // Re-rendered or image-only — structural history flattened away.
+        case 'filled_form_origin':
+        // Interactive form with filled fields — content can be re-filled at any time.
+        case 'fill_sign_origin':
+        // Adobe Fill & Sign overlay — an original fill can't be told from a later edit.
+        case 'consumer_software_origin':
+          // Created in consumer software or a free HTML-to-PDF renderer.
+          // On a document that CLAIMS institutional origin (payslip, invoice, bank
+          // statement), this is itself a red flag — verify the content directly with
+          // the issuing organisation before relying on it.
+          return 'verify-with-issuer';
+        default:
+          return 'verify-with-issuer';
+      }
   }
 }
 ```

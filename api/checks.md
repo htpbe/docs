@@ -80,7 +80,7 @@ Exact match on the verdict field. Accepts one value:
 
 - `intact` — no modification detected; origin appears institutional
 - `modified` — forensic evidence of post-creation modification found (includes consumer software documents where modification was detected)
-- `inconclusive` — consumer software, online editor, or scanned origin with no modification detected; integrity check does not apply to documents anyone can create, reprocess, or scan from scratch
+- `inconclusive` — consumer software, online editor, scanned, unverifiable (re-rendered or image-only), filled-form, or Fill & Sign origin with no modification detected; integrity check does not apply to documents anyone can create, reprocess, fill in, or scan from scratch
 
 Omit to return all checks regardless of verdict.
 
@@ -373,7 +373,7 @@ Each item in the `data` array has the following structure:
 - **Description:** Verdict for this check. Priority: `modified > inconclusive > intact`
 - **Values:**
   - `"modified"` = forensic evidence of post-creation modification found; takes priority over origin type — a modified Word document is still `modified`
-  - `"inconclusive"` = consumer software, online editor, or scanned origin (Word, LibreOffice, iLovePDF, scanned images, etc.) with no modification detected; integrity check does not apply to documents anyone can create, reprocess, or scan from scratch
+  - `"inconclusive"` = consumer software, online editor, scanned, unverifiable (re-rendered or image-only), filled-form, or Fill & Sign origin (Word, LibreOffice, iLovePDF, scanned images, browser/library render output, interactive forms, etc.) with no modification detected; integrity check does not apply to documents anyone can create, reprocess, fill in, or scan from scratch
   - `"intact"` = no modification detected and origin appears institutional
 - **Note:** For full verdict details (`modification_markers`, `modification_confidence`, `origin`), retrieve via `GET /api/v1/result/{id}`
 

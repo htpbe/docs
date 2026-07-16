@@ -532,6 +532,73 @@ The response includes a `Retry-After` header (in seconds) indicating how long to
 
 **Note:** This is server-wide capacity, not per-API-key rate limiting. The same retry strategy applies for both live and test keys.
 
+#### Retry Example
+
+Honour `Retry-After` when present, and fall back to exponential backoff (with a little jitter) otherwise. Retry only on `429` and `500` — a `4xx` such as `400` or `422` will not succeed on retry.
+
+```javascript
+// Node.js / TypeScript
+async function analyzeWithRetry(url, maxRetries = 5) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch('https://api.htpbe.tech/v1/analyze', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.HTPBE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
+
+    if (response.status !== 429 && response.status !== 500) {
+      return response; // success or a non-retryable error
+    }
+    if (attempt === maxRetries) {
+      throw new Error(`Giving up after ${maxRetries} retries (last status ${response.status})`);
+    }
+
+    const retryAfter = Number(response.headers.get('Retry-After'));
+    const backoff =
+      Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : Math.min(2 ** attempt * 1000, 30_000) + Math.random() * 1000;
+    await new Promise((resolve) => setTimeout(resolve, backoff));
+  }
+}
+```
+
+```python
+# Python
+import os
+import random
+import time
+
+import requests
+
+
+def analyze_with_retry(url, max_retries=5):
+    for attempt in range(max_retries + 1):
+        response = requests.post(
+            'https://api.htpbe.tech/v1/analyze',
+            headers={
+                'Authorization': f"Bearer {os.getenv('HTPBE_API_KEY')}",
+                'Content-Type': 'application/json',
+            },
+            json={'url': url},
+        )
+
+        if response.status_code not in (429, 500):
+            return response  # success or a non-retryable error
+        if attempt == max_retries:
+            response.raise_for_status()
+
+        retry_after = response.headers.get('Retry-After')
+        if retry_after and retry_after.isdigit():
+            backoff = int(retry_after)
+        else:
+            backoff = min(2 ** attempt, 30) + random.random()
+        time.sleep(backoff)
+```
+
 ---
 
 ### 500 Internal Server Error

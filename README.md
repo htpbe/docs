@@ -19,7 +19,7 @@ HTPBE analyzes a PDF file and returns one of three verdicts:
 
 - **`intact`** — no modification indicators detected; origin appears institutional
 - **`modified`** — forensic evidence of post-creation modification found
-- **`inconclusive`** — the PDF was created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.), processed through an online editing service (iLovePDF, Smallpdf, PDF24, etc.), or is a pure raster scan; the integrity check does not apply to documents anyone can create, reprocess, or scan from scratch
+- **`inconclusive`** — the integrity check does not apply, because the document is one that anyone can create, reprocess, fill in, or scan from scratch. This covers PDFs created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.), processed through an online editing service (iLovePDF, Smallpdf, PDF24, etc.), a pure raster scan, a re-rendered or image-only file whose structural provenance cannot be established, a filled-in interactive form, or a Fill & Sign annotation pass. The specific reason is returned in `status_reason` (see [`GET /result/{id}`](api/result.md))
 
 **What "No Traces Found" actually means:** The algorithm found no forensic evidence of modification — no structural artifacts, no metadata inconsistencies, no editing tool signatures. This is a statement about what was detected, not a guarantee of authenticity. A document fabricated from scratch and exported cleanly may also show no traces, because it was never modified after creation — only created with false content. Absence of evidence is not evidence of absence.
 

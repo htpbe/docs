@@ -134,8 +134,8 @@ Response:
   "filename": "modified-high.pdf",
   "check_date": null,
   "file_size": 1048576,
-  "algorithm_version": "2.2.1",
-  "current_algorithm_version": "2.2.1",
+  "algorithm_version": "2.37.1",
+  "current_algorithm_version": "2.37.1",
   "status": "modified",
   "origin": {
     "type": "institutional",
