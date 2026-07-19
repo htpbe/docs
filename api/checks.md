@@ -115,7 +115,7 @@ curl 'https://api.htpbe.tech/v1/checks?tool=Adobe%20PDF%20Library%2015.0&limit=5
 curl 'https://api.htpbe.tech/v1/checks?status=modified&limit=200' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 
-# Get inconclusive checks (consumer software, online editor, or scanned origin)
+# Get inconclusive checks (consumer software, online editor, scanned, unverifiable, filled-form, or Fill & Sign origin)
 curl 'https://api.htpbe.tech/v1/checks?status=inconclusive&limit=200' \
   -H "Authorization: Bearer htpbe_live_sk_1234567890abcdef"
 ```

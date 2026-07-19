@@ -190,6 +190,8 @@ Use these to test how your application handles documents that pass verification.
 
 Use these to test how your application handles the case where integrity check is not applicable — PDFs created with office/consumer software, processed through online editors, or scanned from paper cannot be verified.
 
+> The live API can also return `status: "inconclusive"` with three further `status_reason` values — `unverifiable_metadata`, `filled_form_origin`, and `fill_sign_origin` (see [result.md](./api/result.md) for the full enum). These origins depend on structural traits that the synthetic mock flow cannot reproduce, so there are no dedicated test URLs for them. Handle every `inconclusive` reason with the same fallback path — do not branch on the exact reason string.
+
 | URL                                                             | `status`       | Notes                                                                                        |
 | --------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
 | `https://api.htpbe.tech/v1/test/dates-same.pdf`                 | `inconclusive` | LibreOffice origin — `status_reason: "consumer_software_origin"`                             |
@@ -631,6 +633,7 @@ Use this list before switching from test to live keys:
 - [ ] Application handles `status: "inconclusive"` with `status_reason: "consumer_software_origin"` and `origin.software` displayed to the user
 - [ ] Application handles `status: "inconclusive"` with `status_reason: "online_editor_origin"` (online editor, metadata stripped)
 - [ ] Application handles `status: "inconclusive"` with `status_reason: "scanned_document"` (pure raster scan, no text layer)
+- [ ] Application falls back gracefully on any other `status_reason` — `unverifiable_metadata`, `filled_form_origin`, `fill_sign_origin` — without branching on the exact string (these are not reproducible via test URLs)
 - [ ] UI displays `modification_markers` array items clearly
 - [ ] Code handles `null` values in `creation_date` and `modification_date`
 - [ ] Code handles empty `modification_markers` array
