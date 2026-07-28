@@ -119,10 +119,6 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
   // Primary Verdict
   status: "intact" | "modified" | "inconclusive";
   status_reason?: "consumer_software_origin" | "online_editor_origin" | "scanned_document" | "unverifiable_metadata" | "filled_form_origin" | "fill_sign_origin";
-  origin: {
-    type: "consumer_software" | "institutional" | "unknown" | "online_editor" | "scanned" | "unverifiable" | "filled_form" | "fill_sign";
-    software: string | null;
-  };
 
   // PDF Metadata (Unix timestamps)
   creation_date: number | null;
@@ -253,7 +249,7 @@ Returns a `ResultResponse` object containing all stored analysis data for the ch
 - **Description:** **PRIMARY VERDICT.** Priority: `modified > inconclusive > intact`
   - `"modified"` — forensic evidence of post-creation modification detected; takes priority over origin type — a modified Word or Excel document is still `modified`
   - `"inconclusive"` — consumer software, online editor, scanned, unverifiable (re-rendered or image-only), filled-form, or Fill & Sign origin with no modification detected; integrity check does not apply to documents anyone can create, reprocess, fill in, or scan from scratch. The specific cause is in `status_reason`
-  - `"intact"` — no modification detected and origin appears institutional
+  - `"intact"` — no structural evidence of modification, and the document did not originate from consumer software, an online editor, or a scan
 - **Note:** `status_reason` only appears when `status === "inconclusive"`
 
 ##### `status_reason`
@@ -280,7 +276,7 @@ function handleResult(result) {
       return 'review';
 
     case 'intact':
-      // No modification detected and origin appears institutional.
+      // No structural evidence of modification.
       return 'accept';
 
     case 'inconclusive':
@@ -570,10 +566,6 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "algorithm_version": "2.2.1",
   "current_algorithm_version": "2.2.1",
   "status": "modified",
-  "origin": {
-    "type": "institutional",
-    "software": null
-  },
   "creation_date": 1704110400,
   "modification_date": 1707840000,
   "creator": "Adobe Acrobat Pro DC",
@@ -614,10 +606,6 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "current_algorithm_version": "2.2.1",
   "status": "inconclusive",
   "status_reason": "consumer_software_origin",
-  "origin": {
-    "type": "consumer_software",
-    "software": "Microsoft Excel"
-  },
   "creation_date": 1709283600,
   "modification_date": 1709283600,
   "creator": "Microsoft Excel 2019",
@@ -658,10 +646,6 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "current_algorithm_version": "2.2.1",
   "status": "inconclusive",
   "status_reason": "online_editor_origin",
-  "origin": {
-    "type": "online_editor",
-    "software": "iLovePDF"
-  },
   "creation_date": null,
   "modification_date": null,
   "creator": null,
@@ -702,10 +686,6 @@ All timestamps are Unix integers (seconds since epoch). Convert with: `new Date(
   "current_algorithm_version": "2.2.1",
   "status": "inconclusive",
   "status_reason": "scanned_document",
-  "origin": {
-    "type": "scanned",
-    "software": null
-  },
   "creation_date": null,
   "modification_date": null,
   "creator": null,

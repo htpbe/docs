@@ -17,7 +17,7 @@ API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
 
 HTPBE analyzes a PDF file and returns one of three verdicts:
 
-- **`intact`** — no modification indicators detected; origin appears institutional
+- **`intact`** — no structural evidence of modification
 - **`modified`** — forensic evidence of post-creation modification found
 - **`inconclusive`** — the integrity check does not apply, because the document is one that anyone can create, reprocess, fill in, or scan from scratch. This covers PDFs created with consumer software (Microsoft Word, LibreOffice, Google Docs, etc.), processed through an online editing service (iLovePDF, Smallpdf, PDF24, etc.), a pure raster scan, a re-rendered or image-only file whose structural provenance cannot be established, a filled-in interactive form, or a Fill & Sign annotation pass. The specific reason is returned in `status_reason` (see [`GET /result/{id}`](api/result.md))
 
