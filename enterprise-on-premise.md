@@ -51,7 +51,7 @@ Your application
 │  ┌──────────────────────────┐   │
 │  │  PDF Download (internal) │   │  ← fetches from your internal storage
 │  │  5-Layer Analysis        │   │
-│  │  Results Database        │   │  ← local SQLite or external DB
+│  │  Results Database        │   │  ← your PostgreSQL instance
 │  └──────────────────────────┘   │
 └─────────────────────────────────┘
        │
@@ -75,7 +75,7 @@ docker run -d \
   --name htpbe \
   -p 3000:3000 \
   -e LICENSE_KEY=your_license_key \
-  -e DATABASE_URL=file:/data/htpbe.db \
+  -e DATABASE_URL=postgres://... \
   -v htpbe_data:/data \
   ghcr.io/htpbe/analyzer:latest
 ```
@@ -90,7 +90,7 @@ services:
       - '3000:3000'
     environment:
       LICENSE_KEY: your_license_key
-      DATABASE_URL: file:/data/htpbe.db
+      DATABASE_URL: postgres://...
       MAX_FILE_SIZE_MB: 50 # default: 50, set as needed
       API_KEY: your_internal_api_key
     volumes:
@@ -109,14 +109,14 @@ A Helm chart is available on request. Contact mail@htpbe.tech.
 
 ## Environment Variables
 
-| Variable           | Required | Default               | Description                                        |
-| ------------------ | -------- | --------------------- | -------------------------------------------------- |
-| `LICENSE_KEY`      | **Yes**  | —                     | License key provided after purchase                |
-| `DATABASE_URL`     | No       | `file:/data/htpbe.db` | SQLite file path or external DB connection string  |
-| `API_KEY`          | No       | —                     | Require this key on all API requests (recommended) |
-| `MAX_FILE_SIZE_MB` | No       | `50`                  | Maximum PDF file size in MB                        |
-| `PORT`             | No       | `3000`                | HTTP port to listen on                             |
-| `LOG_LEVEL`        | No       | `info`                | Logging level: `debug`, `info`, `warn`, `error`    |
+| Variable           | Required | Default | Description                                                            |
+| ------------------ | -------- | ------- | ---------------------------------------------------------------------- |
+| `LICENSE_KEY`      | **Yes**  | —       | License key provided after purchase                                    |
+| `DATABASE_URL`     | Yes      | —       | PostgreSQL connection string (`postgres://…`). SQLite is not supported |
+| `API_KEY`          | No       | —       | Require this key on all API requests (recommended)                     |
+| `MAX_FILE_SIZE_MB` | No       | `50`    | Maximum PDF file size in MB                                            |
+| `PORT`             | No       | `3000`  | HTTP port to listen on                                                 |
+| `LOG_LEVEL`        | No       | `info`  | Logging level: `debug`, `info`, `warn`, `error`                        |
 
 ---
 

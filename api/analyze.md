@@ -422,6 +422,19 @@ Access forbidden due to account status.
 
 **Solution:** Use one of the mock test URLs — see [testing.md](../testing.md) for the full list — or switch to a live API key (`htpbe_live_...`) to analyze real files.
 
+#### Account Restricted
+
+```json
+{
+  "error": "This account uses a disposable email address and cannot run checks. Contact support if this is a mistake.",
+  "code": "account_restricted"
+}
+```
+
+**Cause:** The account is registered to a disposable / throwaway email domain. Live keys on such accounts are blocked per request.
+
+**Solution:** Move the account to a permanent work address, or contact support if the domain was flagged in error.
+
 ---
 
 ### 413 Payload Too Large
