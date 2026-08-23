@@ -6,7 +6,7 @@ HTPBE scans a PDF for forensic evidence of post-creation modification.
 
 Submit a PDF URL → get a verdict: **`intact`**, **`modified`**, or **`inconclusive`**.
 
-Web tool (5 free checks on signup): **[htpbe.tech](https://htpbe.tech)**
+Web tool (5 free credits on signup): **[htpbe.tech](https://htpbe.tech)**
 API for developers: **[htpbe.tech/api](https://htpbe.tech/api)**
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/51864889-5ad8d5bd-e6c2-46d9-8efe-f015b066b0d9)
@@ -29,11 +29,11 @@ The analysis runs multiple forensic checks across metadata, file structure, digi
 
 ## Web Interface
 
-New accounts get **5 free checks** on signup. After that, top up with one-time credit packs (from $5) or a subscription (from $15/mo). Credits are shared across the web tool and the API.
+New accounts get **5 free credits** on signup. After that, top up with one-time credit packs (from $5) or a subscription (from $15/mo). Credits are shared across the web tool and the API.
 
 1. Go to [htpbe.tech](https://htpbe.tech)
 2. Upload a PDF (drag & drop or click) — up to 10 MB
-3. Sign in to view the verdict (new accounts get 5 free checks)
+3. Sign in to view the verdict (new accounts get 5 free credits)
 4. Every result has a unique shareable URL
 
 ---
@@ -137,12 +137,12 @@ Selected mock URLs (see [testing.md](./testing.md) for full list):
 
 ## Pricing
 
-| Plan           | Price   | Requests/month | Per request |
-| -------------- | ------- | -------------- | ----------- |
-| **Starter**    | $15/mo  | 30             | $0.50       |
-| **Growth**     | $149/mo | 350            | $0.43       |
-| **Pro**        | $499/mo | 1,500          | $0.33       |
-| **Enterprise** | Custom  | Unlimited      | $0.10–$0.20 |
+| Plan           | Price   | Credits/month | Per algorithmic check |
+| -------------- | ------- | ------------- | --------------------- |
+| **Starter**    | $15/mo  | 30            | $0.50                 |
+| **Growth**     | $149/mo | 350           | $0.43                 |
+| **Pro**        | $499/mo | 1,500         | $0.33                 |
+| **Enterprise** | Custom  | Unlimited     | $0.10–$0.20           |
 
 All plans include test API keys. Monthly billing only. The monthly quota covers both API calls and web uploads from a single pool. When a subscriber reaches their quota, further requests return `402 PAYMENT_REQUIRED` until the quota resets — add a one-time credit pack or upgrade to keep going. (Continued checking past the quota is available only by individual agreement.)
 
